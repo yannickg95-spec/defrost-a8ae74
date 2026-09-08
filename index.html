@@ -1,0 +1,2599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Defrost — Shot List</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f2f2f6; --card: #ffffff; --raised: #ffffff;
+    --text: #1c1c1e; --muted: #6b6b70; --faint: #9a9aa0;
+    --line: rgba(0,0,0,0.09); --line-strong: rgba(0,0,0,0.16);
+    --accent: #0a84ff; --night: #ff9500;
+    --chip: rgba(0,0,0,0.05); --chip-hover: rgba(0,0,0,0.09);
+    --shadow: 0 1px 2px rgba(0,0,0,0.04), 0 4px 14px rgba(0,0,0,0.05);
+    --bar: rgba(242,242,246,0.88);
+    --sticky: 60px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #121214; --card: #1d1d1f; --raised: #262629;
+      --text: #f2f2f7; --muted: #98989d; --faint: #7c7c80;
+      --line: rgba(255,255,255,0.10); --line-strong: rgba(255,255,255,0.18);
+      --chip: rgba(255,255,255,0.08); --chip-hover: rgba(255,255,255,0.14);
+      --shadow: none; --bar: rgba(18,18,20,0.88);
+    }
+  }
+  * { box-sizing: border-box; }
+  /* Pin text at 100% so mobile Safari doesn't inflate shot/body text in landscape. */
+  html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+         margin: 0; background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; }
+
+  /* Masthead */
+  .masthead { position: relative; padding: 30px 28px 22px; max-width: 1240px; margin: 0 auto; }
+  .masthead h1 { margin: 0 0 6px; font-size: 30px; letter-spacing: -0.4px;
+                 display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 12px; row-gap: 2px; }
+  /* "Shot List" beside the title, smaller; drops under it when there's no room. */
+  .title-tag { font-size: 16px; font-weight: 600; color: var(--muted); letter-spacing: 0; white-space: nowrap; }
+  .masthead .sub { color: var(--muted); font-size: 14px; margin-top: 12px; }
+  /* Credits sit side by side, wrapping to stacked lines when the window is
+     too narrow. Each credit keeps its label+value together (nowrap). */
+  .credits { display: flex; flex-wrap: wrap; align-items: baseline; margin-top: 8px;
+             font-size: 13px; color: var(--muted); }
+  .credit { white-space: nowrap; }
+  .credit:not(:last-child)::after { content: "·"; margin: 0 12px; color: var(--faint); }
+  .credit b { color: var(--text); font-weight: 600; }
+  .brandline { position: absolute; top: 30px; right: 28px; display: flex; align-items: center;
+               gap: 7px; font-size: 12px; color: var(--muted); }
+  .brandline b { color: var(--text); font-weight: 700; }
+  .brandlogo { width: 20px; height: 20px; display: block; flex: none;
+               background: #fff; border-radius: 5px; box-shadow: 0 0 0 1px rgba(0,0,0,0.10); }
+  /* On phones drop it back into the flow above the title so it can't overlap. */
+  @media (max-width: 640px) { .brandline { position: static; margin: 0 0 12px; } }
+
+  /* Episode switcher (series only): individual pills under the credits that
+     swap which episode is shown, in-page. The row stays on one line and scrolls
+     horizontally when it overflows (e.g. iPhone portrait) rather than wrapping. */
+  .epstrip { display: flex; flex-wrap: nowrap; gap: 8px; margin-top: 16px;
+             overflow-x: auto; -webkit-overflow-scrolling: touch;
+             scrollbar-width: none; padding-bottom: 2px; }
+  .epstrip::-webkit-scrollbar { display: none; }
+  .ep-btn { flex: 0 0 auto; border: 1px solid var(--line-strong); background: var(--card); color: var(--muted);
+            font: inherit; font-size: 13px; font-weight: 600; padding: 7px 14px; border-radius: 999px;
+            cursor: pointer; white-space: nowrap; max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
+  .ep-btn:hover { color: var(--text); border-color: var(--muted); }
+  .ep-btn.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  /* Sticky filter bar */
+  .toolbar { position: sticky; top: 0; z-index: 20; background: var(--bar);
+             backdrop-filter: saturate(180%) blur(14px); -webkit-backdrop-filter: saturate(180%) blur(14px);
+             border-bottom: 1px solid var(--line); }
+  .toolbar-inner { max-width: 1240px; margin: 0 auto; padding: 10px 28px;
+                   display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .search { position: relative; flex: 1 1 120px; min-width: 90px; }
+  .search input { width: 100%; font: inherit; font-size: 14px; padding: 8px 32px 8px 32px;
+                  border-radius: 9px; border: 1px solid var(--line-strong); background: var(--card);
+                  color: var(--text); }
+  .search input:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: transparent; }
+  .search .glass { position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+                   color: var(--faint); font-size: 13px; pointer-events: none; }
+  .search .clear { position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+                   border: 0; background: transparent; color: var(--faint); font-size: 17px;
+                   cursor: pointer; padding: 2px 6px; line-height: 1; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip { font: inherit; font-size: 12px; font-weight: 600; padding: 6px 11px; border-radius: 999px;
+          border: 1px solid transparent; background: var(--chip); color: var(--muted); cursor: pointer; }
+  .chip:hover { background: var(--chip-hover); }
+  .chip.on { background: var(--accent); color: #fff; }
+  .chip.on.chip-night { background: var(--night); color: #1c1c1e; }
+  .tools { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+  .count { font-size: 12px; color: var(--muted); white-space: nowrap; }
+  .linkbtn { font: inherit; font-size: 12px; font-weight: 600; background: none; border: 0;
+             color: var(--accent); cursor: pointer; padding: 4px; }
+
+  /* Layout: scene index + shot list */
+  .layout { max-width: 1240px; margin: 0 auto; padding: 22px 28px 90px;
+            display: grid; grid-template-columns: 216px minmax(0,1fr); gap: 30px; align-items: start; }
+  .toc { position: sticky; top: calc(var(--sticky) + 14px); max-height: calc(100vh - var(--sticky) - 40px);
+         overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
+  .toc-title { font-size: 11px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase;
+               color: var(--faint); padding: 0 8px 8px; }
+  .toc-item { display: flex; align-items: baseline; gap: 8px; padding: 6px 8px; border-radius: 7px;
+              text-decoration: none; color: var(--text); font-size: 13px; }
+  .toc-item:hover { background: var(--chip); }
+  .toc-item.active { background: rgba(10,132,255,0.14); }
+  .toc-num { font-weight: 600; white-space: nowrap; }
+  .toc-loc { color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .toc-count { margin-left: auto; color: var(--faint); font-size: 11px; font-variant-numeric: tabular-nums; }
+  @media (max-width: 980px) { .layout { grid-template-columns: minmax(0,1fr); } .toc { display: none; } }
+
+  /* Scenes */
+  .scene { margin-bottom: 46px; scroll-margin-top: calc(var(--sticky) + 16px); }
+  .scene-head { display: flex; align-items: flex-end; gap: 9px; flex-wrap: wrap; cursor: pointer;
+                padding-bottom: 10px; margin-bottom: 16px; border-bottom: 1px solid var(--line-strong);
+                list-style: none; -webkit-tap-highlight-color: transparent; }
+  .scene-head::-webkit-details-marker { display: none; }
+  .scene-head::marker { content: ""; }
+  .scene-head:focus { outline: none; }
+  .scene-title { font-size: 19px; font-weight: 700; letter-spacing: -0.2px; }
+  /* Our own disclosure arrow, since the native marker is hidden. */
+  .scene-head::before { content: "▾"; font-size: 12px; color: var(--faint); width: 14px;
+                        flex: none; transition: transform 0.15s ease; }
+  .scene:not([open]) > .scene-head { margin-bottom: 0; }
+  .scene:not([open]) > .scene-head::before { transform: rotate(-90deg); }
+  .tag { font-size: 10px; font-weight: 700; letter-spacing: 0.6px; padding: 3px 7px; border-radius: 5px; }
+  .tag-type { background: var(--chip); color: var(--muted); }
+  .tag-day { background: rgba(10,132,255,0.16); color: var(--accent); }
+  .tag-night { background: rgba(255,149,0,0.20); color: #b06a00; }
+  @media (prefers-color-scheme: dark) { .tag-night { color: var(--night); } }
+  .scene-loc { font-size: 13px; color: var(--muted); }
+  .scene-count { margin-left: auto; font-size: 12px; color: var(--faint); }
+
+  /* Shots — a compact one-row summary with inline, openable thumbnails,
+     expanding to its detail rows. The expand is a pure-CSS checkbox
+     toggle, so it works with no JS (and in Quick Look). */
+  .shot { background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+          box-shadow: var(--shadow); }
+  .shot + .shot { margin-top: 8px; }
+  .shot-toggle { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+  .shot-row { display: flex; align-items: center; gap: 7px 12px; padding: 9px 10px 9px 14px; }
+  /* The clickable text part expands the shot; the thumbnails don't. */
+  .shot-main { display: flex; align-items: center; gap: 7px 12px; flex: 1 1 auto;
+               min-width: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .shot-caret { flex: none; width: 12px; font-size: 11px; color: var(--faint);
+                transition: transform 0.12s ease; }
+  .shot-caret::before { content: "▸"; }
+  .shot-toggle:checked ~ .shot-row .shot-caret { transform: rotate(90deg); }
+  .shot-toggle:focus-visible ~ .shot-row .shot-main { outline: 2px solid var(--accent);
+                outline-offset: 3px; border-radius: 8px; }
+  .shot-num { font-weight: 700; font-size: 13px; padding: 3px 9px; border-radius: 6px;
+              background: var(--chip); font-variant-numeric: tabular-nums; flex: none; }
+  .shot-nick { color: var(--text); font-size: 14px; font-weight: 700; flex: none; }
+  .si-vals { color: var(--muted); font-size: 12.5px; white-space: nowrap;
+             overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1 1 160px; }
+  .si-empty { font-style: italic; color: var(--faint); }
+  /* Inline thumbnails, pushed to the right of the row and shrunk. */
+  .media { display: flex; flex-direction: row; flex-wrap: wrap; gap: 6px;
+           flex: none; margin-left: auto; justify-content: flex-end; align-items: flex-start; }
+  .media:empty { display: none; }
+  .shot-row .media .mi:not([open]) > summary { display: flex; flex-direction: column;
+           align-items: center; gap: 2px; width: 46px; }
+  .shot-row .media .mi:not([open]) .thumb-label { display: none; text-align: center; line-height: 1.15; }
+  .shot-toggle:checked ~ .shot-row .media .mi:not([open]) .thumb-label { display: block; }
+  .shot-row .media .mi:not([open]) > summary img,
+  .shot-row .media .mi:not([open]) .thumb-blank { width: 46px; height: 32px; }
+  .shot-row .media .mi:not([open]) .play { top: 16px; width: 18px; height: 18px; font-size: 8px; }
+  /* The reference map is hidden in the collapsed row and appears only when the
+     shot is expanded. */
+  .shot-row .media .ref-map { display: none; }
+  .shot-toggle:checked ~ .shot-row .media .ref-map { display: block; }
+  /* Expanded detail rows, revealed by the checkbox; indented under the row. */
+  .shot-body { display: none; padding: 4px 15px 13px 40px; }
+  .shot-toggle:checked ~ .shot-body { display: block; }
+  /* One reference: its photo/video and map side by side. */
+  .mi-pair { display: flex; flex-direction: row; gap: 6px; }
+  /* Closed: a 94px thumbnail. Open: a full-screen viewer. Driven entirely by
+     the <details> element so it works without JavaScript. */
+  .mi > summary { position: relative; display: block; width: 94px; cursor: zoom-in;
+                  list-style: none; -webkit-tap-highlight-color: transparent; }
+  .mi > summary::-webkit-details-marker { display: none; }
+  .mi > summary::marker { content: ""; }
+  .mi > summary:focus { outline: none; }
+  .mi > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 9px; }
+  .mi > summary img, .thumb-blank { display: block; width: 94px; height: 66px; object-fit: cover;
+                                    border-radius: 8px; border: 1px solid var(--line); background: #000; }
+  .mi > summary:hover img { border-color: var(--accent); }
+  .mi > video { display: none; }
+  .thumb-label { display: block; font-size: 10px; color: var(--faint); margin-top: 3px;
+                 text-align: center; letter-spacing: 0.2px; }
+  .play { position: absolute; left: 50%; top: 33px; transform: translate(-50%,-50%);
+          width: 26px; height: 26px; border-radius: 50%; background: rgba(0,0,0,0.55);
+          color: #fff; font-size: 10px; display: flex; align-items: center; justify-content: center; }
+
+  /* Expanded viewer */
+  .mi[open] { position: fixed; inset: 0; z-index: 60; background: rgba(0,0,0,0.93);
+              display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .mi[open] > summary { position: absolute; inset: 0; width: auto; cursor: zoom-out; }
+  .mi[open] > summary img { position: absolute; left: 50%; top: 50%;
+                            transform: translate(-50%,-50%); width: auto; height: auto;
+                            max-width: 96vw; max-height: 92vh; object-fit: contain;
+                            border-radius: 6px; border: 0; }
+  .mi[open] > summary .thumb-label, .mi[open] > summary .play { display: none; }
+  .mi-video[open] > summary img { display: none; }
+  .mi-video[open] > video { display: block; position: relative; z-index: 1;
+                            max-width: 96vw; max-height: 92vh; border-radius: 6px; }
+  /* Reference caption: hidden on the thumbnail, shown along the bottom of
+     the open fullscreen viewer. */
+  .mi-note { display: none; }
+  .mi[open] > .mi-note { display: block; position: absolute; z-index: 2;
+                         left: 0; right: 0; bottom: 0; margin: 0;
+                         padding: 14px 20px calc(14px + env(safe-area-inset-bottom));
+                         text-align: center; color: #fff; font-size: 14px; line-height: 1.4;
+                         text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+                         background: linear-gradient(to top, rgba(0,0,0,0.65), rgba(0,0,0,0)); }
+  /* The scene's coverage + map thumbnails, shown once under the header. */
+  .scene-coverage { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 20px; }
+  /* Same cards, folded into the scene header row: small thumbnails with a
+     label underneath, pushed to the right of the title. */
+  .scene-media { display: flex; align-items: flex-start; gap: 12px; margin-left: auto; }
+  /* A collapsed scene hides its cards too, leaving just the heading row. */
+  .scene:not([open]) > .scene-head .scene-media { display: none; }
+  .scene-media .cover-thumb { width: 76px; height: 46px; }
+  .scene-media .mi > summary { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .scene-media .thumb-label { display: block; margin-top: 0; }
+  .scene-media .mi-doc > summary,
+  .scene-media .mi-report > summary { width: auto; }
+  /* Portrait phone: the scene cards drop onto their own line under the
+     heading, left-aligned to start where "Scene x" does (past the caret),
+     rather than pinned to the right as on wider screens. */
+  @media (max-width: 640px) and (orientation: portrait) {
+    .scene-media { margin-left: 0; width: 100%; box-sizing: border-box;
+                   padding-left: 23px; justify-content: flex-start; }
+  }
+  /* The map is landscape, so show the whole thing (letterboxed) rather
+     than the top crop the tall script page uses. */
+  .cover-thumb.is-map { background-size: contain; background-position: center;
+                        background-color: var(--chip); }
+  /* Coverage thumbnail: a wide 16:9 crop of the script page's top. The
+     image and its aspect ratio come from a per-scene rule (.cov-N) so the
+     JPEG is embedded once, not per covered shot. */
+  .cover-thumb { display: block; width: 120px; height: 68px; border-radius: 6px;
+                 border: 1px solid var(--line); background-color: #fff;
+                 background-size: 100% auto; background-repeat: no-repeat; background-position: top center; }
+  /* Open: a scrollable dark overlay showing the pages at a readable width;
+     the element's aspect-ratio (from .cov-N) gives it its full height, so
+     a tall multi-page image scrolls rather than shrinking to fit. */
+  .mi-doc[open] { display: block; overflow: auto; padding: 24px 0; }
+  .mi-doc[open] > summary { position: static; inset: auto; display: block; cursor: zoom-out; }
+  .mi-doc[open] > summary .cover-thumb { width: min(1000px, 94vw); height: auto;
+                            margin: 0 auto; border: 0; border-radius: 4px;
+                            background-size: 100% auto; background-position: top center; }
+  .mi-doc > summary { width: 120px; }
+  .mi-doc[open] > summary .thumb-label { display: none; }
+
+  /* Film-length report: a thumbnail tile that opens an embedded stats
+     panel (text, not an image). */
+  .mi-report > summary { width: 120px; }
+  /* The report thumbnail is a tiny text preview of the report itself. */
+  .cover-thumb.is-report { background: var(--card); background-image: none;
+                           overflow: hidden; padding: 6px 7px; }
+  .report-preview { display: flex; flex-direction: column; gap: 1px; text-align: left; }
+  .rp-title { font-size: 7px; font-weight: 700; color: var(--text); margin-bottom: 1px;
+              white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rp-line { font-size: 6px; line-height: 1.4; color: var(--muted); white-space: nowrap;
+             overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+  .report-panel { display: none; }
+  .mi-report[open] > summary { position: absolute; inset: 0; width: auto; cursor: zoom-out; }
+  .mi-report[open] > summary .cover-thumb,
+  .mi-report[open] > summary .thumb-label { display: none; }
+  .mi-report[open] > .report-panel { display: block; position: relative; z-index: 1;
+                                     width: min(640px, 92vw); max-height: 88vh; overflow: auto; }
+  .report-card { background: var(--card); color: var(--text); border-radius: 12px;
+                 padding: 20px 22px; box-shadow: 0 12px 48px rgba(0,0,0,0.45); }
+  .report-title { font-size: 16px; font-weight: 700; margin: 0 0 14px; }
+  .report-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .report-table th { text-align: left; color: var(--faint); font-weight: 600; font-size: 10px;
+                     text-transform: uppercase; letter-spacing: 0.5px; padding: 4px 12px 5px 0;
+                     border-bottom: 1px solid var(--line-strong); }
+  .report-table td { padding: 6px 12px 6px 0; border-bottom: 1px solid var(--line);
+                     font-variant-numeric: tabular-nums; }
+  .report-table td:first-child { font-weight: 600; }
+  .report-totals-title { font-size: 10px; font-weight: 700; text-transform: uppercase;
+                         letter-spacing: 0.5px; color: var(--faint); margin: 18px 0 6px; }
+  .report-totals td { font-weight: 600; }
+  .nomedia { width: 94px; height: 66px; display: flex; align-items: center; justify-content: center;
+             color: var(--faint); border: 1px dashed var(--line-strong); border-radius: 8px; font-size: 13px; }
+  .details { min-width: 0; }
+  /* Expanded details split into two groups: Shot setup | Camera info.
+     Side by side with a vertical divider when there's room; stacked with
+     a horizontal divider when there isn't (e.g. on a phone). */
+  .detail-cols { display: flex; align-items: stretch; }
+  .detail-col { flex: 1 1 0; min-width: 0; }
+  .detail-col + .detail-col { border-left: 1px solid var(--line); margin-left: 24px; padding-left: 24px; }
+  .col-title { font-size: 10px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase;
+               color: var(--faint); margin-bottom: 8px; }
+  @media (max-width: 640px) {
+    .detail-cols { display: block; }
+    .detail-col + .detail-col { border-left: 0; margin-left: 0; padding-left: 0;
+                                border-top: 1px solid var(--line); margin-top: 12px; padding-top: 12px; }
+  }
+  /* Within a group, rows read straight down one column. */
+  .rows { column-width: auto; }
+  .row { display: grid; grid-template-columns: 96px minmax(0,1fr); gap: 10px; padding: 5px 0;
+         border-bottom: 1px solid var(--line); font-size: 13px; break-inside: avoid; }
+  .k { color: var(--muted); }
+  .v { font-weight: 600; overflow-wrap: anywhere; }
+  .coverage { margin-top: 12px; font-size: 13px; background: var(--chip); border-radius: 9px; padding: 10px 12px; }
+  .coverage > summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 6px;
+                        -webkit-tap-highlight-color: transparent; }
+  .coverage > summary::-webkit-details-marker { display: none; }
+  .coverage > summary::marker { content: ""; }
+  .coverage > summary::before { content: "▾"; font-size: 10px; color: var(--faint);
+                                transition: transform 0.15s ease; }
+  .coverage:not([open]) > summary::before { transform: rotate(-90deg); }
+  /* Coverage text and its thumbnail side by side. */
+  .coverage-row { display: flex; gap: 12px; align-items: flex-start; margin-top: 12px; }
+  .coverage-row .coverage { margin-top: 0; flex: 1 1 auto; min-width: 0; }
+  .coverage-row .mi-doc { flex: none; }
+  .coverage-preview { font-size: 12px; color: var(--muted); font-weight: 400;
+                      text-transform: none; letter-spacing: 0; min-width: 0;
+                      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* The preview is a stand-in for the text, so it goes once the text is shown. */
+  .coverage[open] > summary > .coverage-preview { display: none; }
+  .coverage-text { margin-top: 8px; }
+  .coverage-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.6px;
+                    color: var(--faint); font-weight: 600; }
+  .empty { color: var(--faint); font-size: 13px; font-style: italic; }
+
+  .page-note { max-width: 1240px; margin: 0 auto; padding: 11px 16px; font-size: 13px; color: var(--muted);
+         background: rgba(10,132,255,0.08);
+         border: 1px solid rgba(10,132,255,0.22); border-radius: 9px; }
+  .page-note-wrap { max-width: 1240px; margin: 0 auto; padding: 0 28px; }
+
+  .noresults { text-align: center; color: var(--muted); padding: 60px 20px; }
+  .noresults b { color: var(--text); }
+
+  .totop { position: fixed; right: 20px; bottom: 20px; z-index: 30; width: 40px; height: 40px;
+           border-radius: 50%; border: 1px solid var(--line-strong); background: var(--card);
+           color: var(--text); font-size: 15px; cursor: pointer; box-shadow: var(--shadow); }
+  [hidden] { display: none !important; }
+
+  @media print {
+    .toolbar, .toc, .totop, .disclose, .page-note { display: none !important; }
+    .layout { grid-template-columns: 1fr; padding: 0; }
+    .shot { break-inside: avoid; box-shadow: none; }
+    /* Expand every shot so nothing collapses off the printed page. */
+    .shot-caret { display: none; }
+    .shot-body { display: block !important; }
+    .scene { break-inside: avoid-page; }
+    body { background: #fff; }
+  }
+  /* Shooting-day view */
+  .viewtoggle { display: inline-flex; gap: 2px; background: var(--chip); border-radius: 9px; padding: 2px; flex: 0 0 auto; }
+  /* Narrow screens (e.g. iPhone portrait): a zero-height full-width break
+     forces the search + filters onto the row below the view switch, while the
+     switch keeps its natural (non-stretched) width. */
+  .tb-break { display: none; flex-basis: 100%; height: 0; }
+  @media (max-width: 640px) {
+    .tb-break { display: block; }
+    /* Below the switch: search + all four filter chips share one row, so the
+       search shrinks small enough that the chips don't wrap. */
+    .search { flex: 1 1 56px; min-width: 52px; }
+    .search input { padding-left: 28px; padding-right: 10px; }
+  }
+  .vt { border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 13px; font-weight: 600;
+        padding: 5px 12px; border-radius: 7px; cursor: pointer; }
+  .vt.on { background: var(--accent); color: #fff; }
+  .day-group { margin: 24px 0 8px; scroll-margin-top: calc(var(--sticky) + 16px); }
+  /* Nest each day's scenes (and their shots) under the day header. */
+  .day-group > .scene, .day-group > .empty { margin-left: 24px; }
+  /* Narrow / portrait phone: no indent — scenes start flush with the day header. */
+  @media (max-width: 640px) { .day-group > .scene, .day-group > .empty { margin-left: 0; } }
+  /* The day header sticks below the toolbar while its day scrolls, until the
+     next day's header pushes it up (sticky within each .day-group). */
+  .day-title { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 10px; font-size: 20px; font-weight: 800;
+        margin: 0 0 8px; padding: 8px 0 6px; border-bottom: 2px solid var(--accent);
+        position: sticky; top: var(--sticky); z-index: 10; background: var(--bg);
+        /* Fill the sliver between the toolbar and the header while stuck. */
+        box-shadow: 0 -12px 0 var(--bg); }
+  .day-date { font-size: 13px; font-weight: 600; color: var(--muted); }
+  .day-title .sun-tags { margin: 0 0 0 auto; }
+  /* text-size-adjust:100% stops mobile Safari inflating these text blocks
+     when the phone is in landscape (they look fine in portrait). */
+  .day-meta { font-size: 13px; font-weight: 600; color: var(--muted); margin: -3px 0 30px;
+              -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+  /* The day's free-text note, shown under the header. Preserves line breaks. */
+  .day-note { font-size: 14px; color: var(--text); line-height: 1.5; white-space: pre-wrap;
+              margin: -16px 0 30px; padding: 12px 14px; background: var(--chip);
+              border: 1px solid var(--line); border-radius: 10px;
+              -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+  .sun-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 14px; }
+  .sun-tag { font-size: 12px; padding: 3px 10px; border-radius: 999px;
+             background: rgba(10,132,255,0.10); color: var(--muted); white-space: nowrap; }
+  .sun-tag b { color: var(--text); font-weight: 700; margin-right: 5px; }
+  .sun-tag.golden { background: rgba(255,170,0,0.16); }
+  .sun-tag.golden b { color: #a86a00; }
+  @media (prefers-color-scheme: dark) { .sun-tag.golden b { color: #f0b84a; } }
+  .today-badge { font-size: 11px; font-weight: 700; letter-spacing: 0.4px; color: #fff;
+        background: var(--accent); padding: 2px 8px; border-radius: 999px; }
+  .strip-note { font-size: 13px; color: var(--muted); font-style: italic; margin: 2px 0 8px; }
+  .shot.shot-off { opacity: 0.4; }
+  .shot-off-msg { font-size: 11px; font-style: italic; color: var(--muted); margin-left: 8px; }
+  /* Tighten the top of the day view: less space under the switch and above
+     the first day header (the space scrolls away once the header pins). */
+  .days-mode .layout { grid-template-columns: minmax(0,1fr); padding-top: 10px; }
+  .days-mode .toolbar-inner { padding-top: 8px; padding-bottom: 8px; }
+  .view-days .day-group:first-child { margin-top: 0; }
+  .days-mode .toc { display: none; }
+  .days-mode .search, .days-mode .chips, .days-mode #reset, .days-mode #toggleall, .days-mode .count { display: none; }
+  /* With the search/chips hidden in day view, the phone-portrait line break
+     would leave an empty wrapped row (and its row-gap) under the switch. */
+  .days-mode .tb-break { display: none; }
+
+          .cov-0-0 { background-image: url(media/cov_0_0.jpg); aspect-ratio: 1836 / 4794; }
+          .cov-0-1 { background-image: url(media/cov_0_1.jpg); aspect-ratio: 1836 / 4794; }
+          .cov-0-2 { background-image: url(media/cov_0_2.jpg); aspect-ratio: 1836 / 4794; }
+          .cov-0-3 { background-image: url(media/cov_0_3.jpg); aspect-ratio: 1836 / 4794; }
+          .cov-0-4 { background-image: url(media/cov_0_4.jpg); aspect-ratio: 1836 / 4794; }
+          .cov-0-5 { background-image: url(media/cov_0_5.jpg); aspect-ratio: 1836 / 4794; }
+          .cov-0-6 { background-image: url(media/cov_0_6.jpg); aspect-ratio: 1836 / 4794; }
+          .cov-0-7 { background-image: url(media/cov_0_7.jpg); aspect-ratio: 1836 / 7212; }
+</style>
+</head>
+<body>
+<div class="masthead">
+  <div class="brandline">
+    <svg class="brandlogo" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 100 100" aria-hidden="true">
+      <defs><linearGradient id="cpg" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#3ECFFF"></stop><stop offset="1" stop-color="#1A4AFF"></stop></linearGradient></defs>
+      <rect x="11.6" y="15.6" width="76.4" height="12.2" rx="6.1" fill="url(#cpg)"></rect>
+      <rect x="11.6" y="34.1" width="61.9" height="12.2" rx="6.1" fill="url(#cpg)"></rect>
+      <rect x="11.6" y="52.6" width="70.3" height="12.2" rx="6.1" fill="url(#cpg)"></rect>
+      <rect x="11.6" y="71.1" width="48.1" height="12.2" rx="6.1" fill="url(#cpg)"></rect>
+    </svg>
+    <span>Made with <b>CinePlanner</b></span>
+  </div>
+  <h1>Defrost <span class="title-tag">Shot List</span></h1>
+  <div class="credits" id="credits" data-company="Fiction Production Company"><span class="credit"><b>Production Company</b> Fiction Production Company</span><span class="credit"><b>Director</b> John Doe</span><span class="credit"><b>Cinematographer</b> Yannick GIraud</span></div>
+  
+  <div class="sub" id="masthead-sub">Version 1 · 10 scenes · 32 shots</div>
+</div>
+
+<noscript>
+  <div class="page-note-wrap"><div class="page-note">
+    <b>Tip:</b> tap a thumbnail to enlarge it, and tap a scene heading to collapse it.
+    Search and filtering need a full browser — open this file in Safari or Documents
+    by Readdle rather than the Files preview.
+  </div></div>
+</noscript>
+
+<!-- Hidden until the script shows it: search and filters can't work in a
+     preview that has JavaScript switched off, and a dead search box is
+     worse than none. -->
+<div class="toolbar" id="toolbar" hidden>
+  <div class="toolbar-inner">
+    <div class="viewtoggle" id="viewtoggle">
+      <button class="vt on" id="vt-scenes" type="button">Scenes</button>
+      <button class="vt" id="vt-days" type="button">Shooting days</button>
+    </div>
+    <div class="tb-break"></div>
+    <div class="search">
+      <span class="glass">⌕</span>
+      <input id="q" type="search" placeholder="Search" autocomplete="off">
+      <button class="clear" id="clearq" type="button" aria-label="Clear search" hidden>×</button>
+    </div>
+    <div class="chips">
+      <button class="chip" data-group="type" data-value="int" type="button">INT</button>
+      <button class="chip" data-group="type" data-value="ext" type="button">EXT</button>
+      <button class="chip" data-group="time" data-value="day" type="button">Day</button>
+      <button class="chip chip-night" data-group="time" data-value="night" type="button">Night</button>
+    </div>
+    <div class="tools">
+      <span class="count" id="count"></span>
+      <button class="linkbtn" id="reset" type="button" hidden>Reset</button>
+      <button class="linkbtn" id="toggleall" type="button">Collapse all</button>
+    </div>
+  </div>
+</div>
+
+<div class="episodes">
+<section class="episode" data-ep="0" data-has-days="0" data-sub="Version 1 · 10 scenes · 32 shots" data-director="John Doe" data-cinematographer="Yannick GIraud">
+  <div class="layout">
+    <nav class="toc">
+      <div class="toc-title">Scenes</div>
+  <a class="toc-item" data-for="ep0-scene-0" href="#ep0-scene-0"><span class="toc-num">Scene 1</span><span class="toc-loc">ANNA'S KITCHEN</span><span class="toc-count">4</span></a>
+  <a class="toc-item" data-for="ep0-scene-1" href="#ep0-scene-1"><span class="toc-num">Scene 2</span><span class="toc-loc">CELLAR</span><span class="toc-count">1</span></a>
+  <a class="toc-item" data-for="ep0-scene-2" href="#ep0-scene-2"><span class="toc-num">Scene 3</span><span class="toc-loc">BACK GARDEN</span><span class="toc-count">4</span></a>
+  <a class="toc-item" data-for="ep0-scene-3" href="#ep0-scene-3"><span class="toc-num">Scene 4</span><span class="toc-loc">ANNA'S KITCHEN</span><span class="toc-count">2</span></a>
+  <a class="toc-item" data-for="ep0-scene-4" href="#ep0-scene-4"><span class="toc-num">Scene 5</span><span class="toc-loc">SUPERMARKET PARKING LOT</span><span class="toc-count">4</span></a>
+  <a class="toc-item" data-for="ep0-scene-5" href="#ep0-scene-5"><span class="toc-num">Scene 6</span><span class="toc-loc">SUPERMARKET - FREEZER AISLE</span><span class="toc-count">2</span></a>
+  <a class="toc-item" data-for="ep0-scene-6" href="#ep0-scene-6"><span class="toc-num">Scene 7</span><span class="toc-loc">ANNA'S BEDROOM</span><span class="toc-count">3</span></a>
+  <a class="toc-item" data-for="ep0-scene-7" href="#ep0-scene-7"><span class="toc-num">Scene 8</span><span class="toc-loc">CELLAR</span><span class="toc-count">4</span></a>
+  <a class="toc-item" data-for="ep0-scene-8" href="#ep0-scene-8"><span class="toc-num">Scene 9</span><span class="toc-loc">FOREST EDGE</span><span class="toc-count">3</span></a>
+  <a class="toc-item" data-for="ep0-scene-9" href="#ep0-scene-9"><span class="toc-num">Scene 10</span><span class="toc-loc">ANNA'S KITCHEN</span><span class="toc-count">5</span></a>
+      </nav>
+    <main>
+      <div class="view-scenes">
+<details class="scene" id="ep0-scene-0" open data-int="1" data-day="0" data-media="0" data-text="scene 1 anna's kitchen int night 1.1 1.2 1.3 1.4">
+  <summary class="scene-head">
+    <span class="scene-title">Scene 1</span>
+    <span class="tag tag-type">INT</span>
+    <span class="tag tag-night">NIGHT</span>
+    <span class="scene-loc">ANNA'S KITCHEN</span>
+    <span class="scene-media">
+      <details class="mi mi-doc"><summary onclick="event.stopPropagation()" title="Script with coverage for this scene"><span class="cover-thumb cov-0-0"></span><span class="thumb-label">Coverage</span></summary></details>
+    </span>
+  </summary>
+  <div class="shots">
+    <div class="shot" data-media="0" data-text="1.1 anna rain needles the window. a single lamp throws a tired yellow
+circle over a formica table. anna vos (60s), cardigan
+buttoned to the throat, stands over a mug of tea that has
+long gone cold.
+she is not drinking it. she is listening.
+somewhere beneath the floor a low mechanical hum rises and
+falls, patient, regular, like something large and content
+that is breathing in its sleep.
+anna's eyes travel to a narrow door in the corner of the
+kitchen. a heavy brass padlock hangs from the latch. taped
+above it, curling at the edges, a yellow sticky note in her
+own handwriting: do not open.
+anna
+(to the floor)
+you be quiet now. you've had your
+day.
+the hum climbs a lazy half-step higher, as if it heard her.
+anna wraps both hands around the cold mug and does not move
+for a long time.
+on the counter, a wall calendar. a date three days from now
+is circled twice in red pen: anniversary.
+the phone on the wall rings, obscene and loud. anna
+flinches, glares at it, lets it ring three more times, then
+answers.
+anna
+...yes. eva. it's late.
+eva (v.o.)
+it's nine o'clock, mum. i called
+to say i'm driving up for the
+anniversary. thought i'd surprise
+dad.
+anna's knuckles whiten on the receiver. below her feet, the
+hum swells, as if listening.
+anna
+you don't need to do that.
+eva (v.o.)
+2.
+he never answers his phone. is he
+there? put him on.
+anna
+(too quickly)
+he's asleep. he's downstairs. he's
+-- resting. you know your father.
+eva (v.o.)
+...mum. is everything alright?
+anna
+everything's frozen solid,
+darling. goodnight.
+she hangs up before eva can answer, and stands with her hand
+on the receiver as though holding a door shut. size ms type single + high angle focal length 35mm grip tripod camera sony fx9 · ff 6k (3840x2160) framelines 16:9 lens canon fd extra info master shot">
+      <input type="checkbox" class="shot-toggle" id="shot-0">
+      <div class="shot-row">
+        <label class="shot-main" for="shot-0">
+          <span class="shot-caret" aria-hidden="true"></span>
+          <span class="shot-num">1.1</span>
+          <span class="shot-nick">Anna</span>
+          <span class="si-vals" title="Size: MS · Type: Single + High Angle · Focal Length: 35mm · Grip: Tripod · Extra info: Master Shot">MS · Single + High Angle · 35mm · Tripod · Master Shot</span>
+        </label>
+        <div class="media">
+          <div class="mi-pair">
+          </div>
+        </div>
+      </div>
+      <div class="shot-body">
+        <div class="detail-cols">
+          <div class="detail-col">
+            <div class="col-title">Shot setup</div>
+            <div class="rows">
+              <div class="row"><span class="k">Size</span><span class="v">MS</span></div>
+              <div class="row"><span class="k">Type</span><span class="v">Single + High Angle</span></div>
+              <div class="row"><span class="k">Focal Length</span><span class="v">35mm</span></div>
+              <div class="row"><span class="k">Grip</span><span class="v">Tripod</span></div>
+              <div class="row"><span class="k">Extra info</span><span class="v">Master Shot</span></div>
+            </div>
+          </div>
+          <div class="detail-col">
+            <div class="col-title">Camera information</div>
+            <div class="rows">
+              <div class="row"><span class="k">Camera</span><span class="v">Sony FX9 · FF 6K (3840x2160)</span></div>
+              <div class="row"><span class="k">Framelines</span><span class="v">16:9</span></div>
+              <div class="row"><span class="k">Lens</span><span class="v">Canon FD</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="shot" data-media="0" data-text="1.2 anna rain needles the window. a single lamp throws a tired yellow
+circle over a formica table. anna vos (60s), cardigan
+buttoned to the throat, stands over a mug of tea that has
+long gone cold.
+she is not drinking it. she is listening.
+somewhere beneath the floor a low mechanical hum rises and
+falls, patient, regular, like something large and content
+that is breathing in its sleep.
+anna's eyes travel to a narrow door in the corner of the
+kitchen. a heavy brass padlock hangs from the latch. taped
+above it, curling at the edges, a yellow sticky note in her
+own handwriting: do not open.
+anna
+(to the floor)
+you be quiet now. you've had your
+day.
+the hum climbs a lazy half-step higher, as if it heard her.
+anna wraps both hands around the cold mug and does not move
+for a long time.
+on the counter, a wall calendar. a date three days from now
+is circled twice in red pen: anniversary.
+the phone on the wall rings, obscene and loud. anna
+flinches, glares at it, lets it ring three more times, then
+answers.
+anna
+...yes. eva. it's late.
+eva (v.o.)
+it's nine o'clock, mum. i called
+to say i'm driving up for the
+anniversary. thought i'd surprise
+dad.
+anna's knuckles whiten on the receiver. below her feet, the
+hum swells, as if listening.
+anna
+you don't need to do that.
+eva (v.o.)
+2.
+he never answers his phone. is he
+there? put him on.
+anna
+(too quickly)
+he's asleep. he's downstairs. he's
+-- resting. you know your father.
+eva (v.o.)
+...mum. is everything alright?
+anna
+everything's frozen solid,
+darling. goodnight.
+she hangs up before eva can answer, and stands with her hand
+on the receiver as though holding a door shut. size cu type profile shot focal length 50mm grip tripod camera sony fx9 · ff 6k (3840x2160) framelines 16:9 lens canon fd">
+      <input type="checkbox" class="shot-toggle" id="shot-1">
+      <div class="shot-row">
+        <label class="shot-main" for="shot-1">
+          <span class="shot-caret" aria-hidden="true"></span>
+          <span class="shot-num">1.2</span>
+          <span class="shot-nick">Anna</span>
+          <span class="si-vals" title="Size: CU · Type: Profile Shot · Focal Length: 50mm · Grip: Tripod">CU · Profile Shot · 50mm · Tripod</span>
+        </label>
+        <div class="media">
+          <div class="mi-pair">
+          </div>
+        </div>
+      </div>
+      <div class="shot-body">
+        <div class="detail-cols">
+          <div class="detail-col">
+            <div class="col-title">Shot setup</div>
+            <div class="rows">
+              <div class="row"><span class="k">Size</span><span class="v">CU</span></div>
+              <div class="row"><span class="k">Type</span><span class="v">Profile Shot</span></div>
+              <div class="row"><span class="k">Focal Length</span><span class="v">50mm</span></div>
+              <div class="row"><span class="k">Grip</span><span class="v">Tripod</span></div>
+            </div>
+          </div>
+          <div class="detail-col">
+            <div class="col-title">Camera information</div>
+            <div class="rows">
+              <div class="row"><span class="k">Camera</span><span class="v">Sony FX9 · FF 6K (3840x2160)</span></div>
+              <div class="row"><span class="k">Framelines</span><span class="v">16:9</span></div>
+              <div class="row"><span class="k">Lens</span><span class="v">Canon FD</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="shot" data-media="0" data-text="1.3 pov somewhere beneath the floor a low mechanical hum rises and
+falls, patient, regular, like something large and content
+that is breathing in its sleep.
+anna's eyes travel to a narrow door in the corner of the
+kitchen. a heavy brass padlock hangs from the latch. taped
+above it, curling at the edges, a yellow sticky note in her
+own handwriting: do not open. size ms type pov focal length 85mm grip tripod camera sony fx9 · ff 6k (3840x2160) framelines 16:9 lens canon fd">
+      <input type="checkbox" class="shot-toggle" id="shot-2">
+      <div class="shot-row">
+        <label class="shot-main" for="shot-2">
+          <span class="shot-caret" aria-hidden="true"></span>
+          <span class="shot-num">1.3</span>
+          <span class="shot-nick">POV</span>
+          <span class="si-vals" title="Size: MS · Type: POV · Focal Length: 85mm · Grip: Tripod">MS · POV · 85mm · Tripod</span>
+        </label>
+        <div class="media">
+          <div class="mi-pair">
+          </div>
+        </div>
+      </div>
+      <div class="shot-body">
+        <div class="detail-cols">
+          <div class="detail-col">
+            <div class="col-title">Shot setup</div>
+            <div class="rows">
+              <div class="row"><span class="k">Size</span><span class="v">MS</span></div>
+              <div class="row"><span class="k">Type</span><span class="v">POV</span></div>
+              <div class="row"><span class="k">Focal Length</span><span class="v">85mm</span></div>
+              <div class="row"><span class="k">Grip</span><span class="v">Tripod</span></div>
+            </div>
+          </div>
+          <div class="detail-col">
+            <div class="col-title">Camera information</div>
+            <div class="rows">
+              <div class="row"><span class="k">Camera</span><span class="v">Sony FX9 · FF 6K (3840x2160)</span></div>
+              <div class="row"><span class="k">Framelines</span><span class="v">16:9</span></div>
+              <div class="row"><span class="k">Lens</span><span class="v">Canon FD</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="shot" data-media="0" data-text="1.4 calendar on the counter, a wall calendar. a date three days from now
+is circled twice in red pen: anniversary. size insert type pov focal length 50mm grip tripod camera sony fx9 · ff 6k (3840x2160) framelines 16:9 lens canon fd">
+      <input type="checkbox" class="shot-toggle" id="shot-3">
+      <div class="shot-row">
+        <label class="shot-main" for="shot-3">
+          <span class="shot-caret" aria-hidden="true"></span>
+          <span class="shot-num">1.4</span>
+          <span class="shot-nick">Calendar</span>
+          <span class="si-vals" title="Size: Insert · Type: POV · Focal Length: 50mm · Grip: Tripod">Insert · POV · 50mm · Tripod</span>
+        </label>
+        <div class="media">
+          <div class="mi-pair">
+          </div>
+        </div>
+      </div>
+      <div class="shot-body">
+        <div class="detail-cols">
+          <div class="detail-col">
+            <div class="col-title">Shot setup</div>
+            <div class="rows">
+              <div class="row"><span class="k">Size</span><span class="v">Insert</span></div>
+              <div class="row"><span class="k">Type</span><span class="v">POV</span></div>
+              <div class="row"><span class="k">Focal Length</span><span class="v">50mm</span></div>
+              <div class="row"><span class="k">Grip</span><span class="v">Tripod</span></div>
+            </div>
+          </div>
+          <div class="detail-col">
+            <div class="col-title">Camera information</div>
+            <div class="rows">
+              <div class="row"><span class="k">Camera</span><span class="v">Sony FX9 · FF 6K (3840x2160)</span></div>
+              <div class="row"><span class="k">Framelines</span><span class="v">16:9</span></div>
+              <div class="row"><span class="k">Lens</span><span class="v">Canon FD</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</details>
+<details class="scene" id="ep0-scene-1" open data-int="1" data-day="0" data-media="0" data-text="scene 2 cellar int night 2.1">
+  <summary class="scene-head">
+    <span class="scene-title">Scene 2</span>
+    <span class="tag tag-type">INT</span>
+    <span class="tag tag-night">NIGHT</span>
+    <span class="scene-loc">CELLAR</span>
+    <span class="scene-media">
+      <details class="mi mi-doc"><summary onclick="event.stopPropagation()" title="Script with coverage for this scene"><span class="cover-thumb cov-0-1"></span><span class="thumb-label">Coverage</span></summary></details>
+    </span>
+  </summary>
+  <div class="shots">
+    <div class="shot" data-media="0" data-text="2.1 anna walks in a bare bulb sways on its cord, sending shadows walking up
+the stone walls. shelves sag with dusty preserves nobody
+will ever eat.
+at the center of the room, taking up half of it, squats a
+long white chest freezer. it hums. it sweats a soft skin of
+frost.
+anna comes down the wooden stairs in her slippers, a
+flashlight trembling in one fist. she crosses to the freezer
+and lays a flat palm on the lid, the way you might feel a
+forehead for fever.
+it is warm.
+she snatches her hand back. under the frost, a thin line of
+pink has begun to bleed along the seal of the lid.
+anna
+...oh, gerrit. not tonight. size xws focal length 20mm grip tripod camera sony fx9 · ff 6k (3840x2160) framelines 16:9 lens canon fd">
+      <input type="checkbox" class="shot-toggle" id="shot-4">
+      <div class="shot-row">
+        <label class="shot-main" for="shot-4">
+          <span class="shot-caret" aria-hidden="true"></span>
+          <span class="shot-num">2.1</span>
+          <span class="shot-nick">Anna walks in</span>
+          <span class="si-vals" title="Size: XWS · Focal Length: 20mm · Grip: Tripod">XWS · 20mm · Tripod</span>
+        </label>
+        <div class="media">
+          <div class="mi-pair">
+          </div>
+        </div>
+      </div>
+      <div class="shot-body">
+        <div class="detail-cols">
+          <div class="detail-col">
+            <div class="col-title">Shot setup</div>
+            <div class="rows">
+              <div class="row"><span class="k">Size</span><span class="v">XWS</span></div>
+              <div class="row"><span class="k">Focal Length</span><span class="v">20mm</span></div>
+              <div class="row"><span class="k">Grip</span><span class="v">Tripod</span></div>
+            </div>
+          </div>
+          <div class="detail-col">
+            <div class="col-title">Camera information</div>
+            <div class="rows">
+              <div class="row"><span class="k">Camera</span><span class="v">Sony FX9 · FF 6K (3840x2160)</span></div>
+              <div class="row"><span class="k">Framelines</span><span class="v">16:9</span></div>
+              <div class="row"><span class="k">Lens</span><span class="v">Canon FD</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</details>
+<details class="scene" id="ep0-scene-2" open data-int="0" data-day="1" data-media="0" data-text="scene 3 back garden ext day 3.1 3.2 3.3 3.4">
+  <summary class="scene-head">
+    <span class="scene-title">Scene 3</span>
+    <span class="tag tag-type">EXT</span>
+    <span class="tag tag-day">DAY</span>
+    <span class="scene-loc">BACK GARDEN</span>
+    <span class="scene-media">
+      <details class="mi mi-doc"><summary onclick="event.stopPropagation()" title="Script with coverage for this scene"><span class="cover-thumb cov-0-2"></span><span class="thumb-label">Coverage</span></summary></details>
+    </span>
+  </summary>
+  <div class="shots">
+    <div class="shot" data-media="0" data-text="3.1 master a flat grey morning. anna kneels in a bare vegetable patch,
+attacking the frozen soil with a hand trowel far harder than
+the soil deserves. beside her, a wheelbarrow with a
+suspicious tarp over it.
+3.
+over the low fence leans tom dekker (70s), all eyebrows and
+slippers, sniffing the air like a retriever that has scented
+something wonderful and forbidden.
+tom
+morning, anna. funny thing.
+anna
+(not looking up)
+is it.
+tom
+there's a smell been coming off
+your place these last few days.
+sweet. sort of vanilla. like a
+bakery that's given up on life.
+anna
+that'll be the compost.
+tom
+in january?
+anna drives the trowel in to the hilt and finally looks at
+him, smiling with every tooth she owns.
+anna
+i'm an ambitious woman, tom.
+tom's eyes drift, helpless, to the tarp on the wheelbarrow.
+anna shifts, very slightly, to block his view.
+tom
+(retreating)
+right. well. you let me know if
+you need a hand. with the compost. size ws type high angle focal length 35mm grip crane camera sony fx9 · ff 6k (3840x2160) framelines 16:9 lens canon fd extra info static shot from crane, looking down">
+      <input type="checkbox" class="shot-toggle" id="shot-5">
+      <div class="shot-row">
+        <label class="shot-main" for="shot-5">
+          <span class="shot-caret" aria-hidden="true"></span>
+          <span class="shot-num">3.1</span>
+          <span class="shot-nick">Master</span>
+          <span class="si-vals" title="Size: WS · Type: High Angle · Focal Length: 35mm · Grip: Crane · Extra info: Static shot from crane, looking down">WS · High Angle · 35mm · Crane · Static shot from crane, looking down</span>
+        </label>
+        <div class="media">
+          <div class="mi-pair">
+          </div>
+        </div>
+      </div>
+      <div class="shot-body">
+        <div class="detail-cols">
+          <div class="detail-col">
+            <div class="col-title">Shot setup</div>
+            <div class="rows">
+              <div class="row"><span class="k">Size</span><span class="v">WS</span></div>
+              <div class="row"><span class="k">Type</span><span class="v">High Angle</span></div>
+              <div class="row"><span class="k">Focal Length</span><span class="v">35mm</span></div>
+              <div class="row"><span class="k">Grip</span><span class="v">Crane</span></div>
+              <div class="row"><span class="k">Extra info</span><span class="v">Static shot from crane, looking down</span></div>
+            </div>
+          </div>
+          <div class="detail-col">
+            <div class="col-title">Camera information</div>
+            <div class="rows">
+              <div class="row"><span class="k">Camera</span><span class="v">Sony FX9 · FF 6K (3840x2160)</span></div>
+              <div class="row"><span class="k">Framelines</span><span class="v">16:9</span></div>
+              <div class="row"><span class="k">Lens</span><span class="v">Canon FD</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="shot" data-media="0" data-text="3.2 anna a flat grey morning. anna kneels in a bare vegetable patch,
+attacking the frozen soil with a hand trowel far harder than
+the soil deserves. beside her, a wheelbarrow with a
+suspicious tarp over it.
+3.
+over the low fence leans tom dekker (70s), all eyebrows and
+slippers, sniffing the air like a retriever that has scented
+something wonderful and forbidden.
+tom
+morning, anna. funny thing.
+anna
+(not looking up)
+is it.
+tom
+there's a smell been coming off
+your place these last few days.
+sweet. sort of vanilla. like a
+bakery that's given up on life.
+anna
+that'll be the compost.
+tom
+in january?
+anna drives the trowel in to the hilt and finally looks at
+him, smiling with every tooth she owns. size cu type profile shot focal length 50mm grip low bowl camera sony fx9 · ff 6k (3840x2160) framelines 16:9 lens canon fd">
+      <input type="checkbox" class="shot-toggle" id="shot-6">
+      <div class="shot-row">
+        <label class="shot-main" for="shot-6">
+          <span class="shot-caret" aria-hidden="true"></span>
+          <span class="shot-num">3.2</span>
+          <span class="shot-nick">Anna</span>
+          <span class="si-vals" title="Size: CU · Type: Profile Shot · Focal Length: 50mm · Grip: Low Bowl">CU · Profile Shot · 50mm · Low Bowl</span>
+        </label>
+        <div class="media">
+          <div class="mi-pair">
+          </div>
+        </div>
+      </div>
+      <div class="shot-body">
+        <div class="detail-cols">
+          <div class="detail-col">
+            <div class="col-title">Shot setup</div>
+            <div class="rows">
+              <div class="row"><span class="k">Size</span><span class="v">CU</span></div>
+              <div class="row"><span class="k">Type</span><span class="v">Profile Shot</span></div>
+              <div class="row"><span class="k">Focal Length</span><span class="v">50mm</span></div>
+              <div class="row"><span class="k">Grip</span><span class="v">Low Bowl</span></div>
+            </div>
+          </div>
+          <div class="detail-col">
+            <div class="col-title">Camera information</div>
+            <div class="rows">
+              <div class="row"><span class="k">Camera</span><span class="v">Sony FX9 · FF 6K (3840x2160)</span></div>
+              <div class="row"><span class="k">Framelines</span><span class="v">16:9</span></div>
+              <div class="row"><span class="k">Lens</span><span class="v">Canon FD</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="shot" data-media="0" data-text="3.3 tom a flat grey morning. anna kneels in a bare vegetable patch,
+attacking the frozen soil with a hand trowel far harder than
+the soil deserves. beside her, a wheelbarrow with a
+suspicious tarp over it.
+3.
+over the low fence leans tom dekker (70s), all eyebrows and
+slippers, sniffing the air like a retriever that has scented
+something wonderful and forbidden.
+tom
+morning, anna. funny thing.
+anna
+(not looking up)
+is it.
+tom
+there's a smell been coming off
+your place these last few days.
+sweet. sort of vanilla. like a
+bakery that's given up on life.
+anna
+that'll be the compost.
+tom
+in january?
+anna drives the trowel in to the hilt and finally looks at
+him, smiling with every tooth she owns.
+anna
+i'm an ambitious woman, tom.
+tom's eyes drift, helpless, to the tarp on the wheelbarrow.
+anna shifts, very slightly, to block his view.
+tom
+(retreating)
+right. well. you let me know if
+you need a hand. with the compost. size ms type single focal length 50mm grip tripod camera sony fx9 · ff 6k (3840x2160) framelines 16:9 lens canon fd">
+      <input type="checkbox" class="shot-toggle" id="shot-7">
+      <div class="shot-row">
+        <label class="shot-main" for="shot-7">
+          <span class="shot-caret" aria-hidden="true"></span>
+          <span class="shot-num">3.3</span>
+          <span class="shot-nick">Tom</span>
+          <span class="si-vals" title="Size: MS · Type: Single · Focal Length: 50mm · Grip: Tripod">MS · Single · 50mm · Tripod</span>
+        </label>
+        <div class="media">
+          <div class="mi-pair">
+          </div>
+        </div>
+      </div>
+      <div class="shot-body">
+        <div class="detail-cols">
+          <div class="detail-col">
+            <div class="col-title">Shot setup</div>
+            <div class="rows">
+              <div class="row"><span class="k">Size</span><span class="v">MS</span></div>
+              <div class="row"><span class="k">Type</span><span class="v">Single</span></div>
+              <div class="row"><span class="k">Focal Length</span><span class="v">50mm</span></div>
+              <div class="row"><span class="k">Grip</span><span class="v">Tripod</span></div>
+            </div>
+          </div>
+          <div class="detail-col">
+            <div class="col-title">Camera information</div>
+            <div class="rows">
+              <div class="row"><span class="k">Camera</span><span class="v">Sony FX9 · FF 6K (3840x2160)</span></div>
+              <div class="row"><span class="k">Framelines</span><span class="v">16:9</span></div>
+              <div class="row"><span class="k">Lens</span><span class="v">Canon FD</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="shot" data-media="0" data-text="3.4 anna anna drives the trowel in to the hilt and finally looks at
+him, smiling with every tooth she owns.
+anna
+i'm an ambitious woman, tom.
+tom's eyes drift, helpless, to the tarp on the wheelbarrow.
+anna shifts, very slightly, to block his view.
+tom
+(retreating)
+right. well. you let me know if
+you need a hand. with the compost. size mcu type single focal length 50mm grip tripod camera sony fx9 · ff 6k (3840x2160) framelines 16:9 lens canon fd">
+      <input type="checkbox" class="shot-toggle" id="shot-8">
+      <div class="shot-row">
+        <label class="shot-main" for="shot-8">
+          <span class="shot-caret" aria-hidden="true"></span>
+          <span class="shot-num">3.4</span>
+          <span class="shot-nick">Anna</span>
+          <span class="si-vals" title="Size: MCU · Type: Single · Focal Length: 50mm · Grip: Tripod">MCU · Single · 50mm · Tripod</span>
+        </label>
+        <div class="media">
+          <div class="mi-pair">
+          </div>
+        </div>
+      </div>
+      <div class="shot-body">
+        <div class="detail-cols">
+          <div class="detail-col">
+            <div class="col-title">Shot setup</div>
+            <div class="rows">
+              <div class="row"><span class="k">Size</span><span class="v">MCU</span></div>
+              <div class="row"><span class="k">Type</span><span class="v">Single</span></div>
+              <div class="row"><span class="k">Focal Length</span><span class="v">50mm</span></div>
+              <div class="row"><span class="k">Grip</span><span class="v">Tripod</span></div>
+            </div>
+          </div>
+          <div class="detail-col">
+            <div class="col-title">Camera information</div>
+            <div class="rows">
+              <div class="row"><span class="k">Camera</span><span class="v">Sony FX9 · FF 6K (3840x2160)</span></div>
+              <div class="row"><span class="k">Framelines</span><span class="v">16:9</span></div>
+              <div class="row"><span class="k">Lens</span><span class="v">Canon FD</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</details>
+<details class="scene" id="ep0-scene-3" open data-int="1" data-day="1" data-media="0" data-text="scene 4 anna's kitchen int day 4.1 4.2">
+  <summary class="scene-head">
+    <span class="scene-title">Scene 4</span>
+    <span class="tag tag-type">INT</span>
+    <span class="tag tag-day">DAY</span>
+    <span class="scene-loc">ANNA'S KITCHEN</span>
+    <span class="scene-media">
+      <details class="mi mi-doc"><summary onclick="event.stopPropagation()" title="Script with coverage for this scene"><span class="cover-thumb cov-0-3"></span><span class="thumb-label">Coverage</span></summary></details>
+    </span>
+  </summary>
+  <div class="shots">
+    <div class="shot" data-media="0" data-text="4.1 anna anna scrubs a counter that does not need scrubbing. behind
+her, unnoticed, a thin ribbon of pink water seeps from under
+the cellar door and reaches, slowly, patiently, for the heel
+of her slipper.
+she turns. she sees it. she stops scrubbing.
+for a moment she simply watches it come, the way you watch a
+memory you cannot outrun. size ms type single + low angle focal length 35mm grip low bowl camera sony fx9 · ff 6k (3840x2160) framelines 16:9 lens canon fd">
+      <input type="checkbox" class="shot-toggle" id="shot-9">
+      <div class="shot-row">
+        <label class="shot-main" for="shot-9">
+          <span class="shot-caret" aria-hidden="true"></span>
+          <span class="shot-num">4.1</span>
+          <span class="shot-nick">Anna</span>
+          <span class="si-vals" title="Size: MS · Type: Single + Low Angle · Focal Length: 35mm · Grip: Low Bowl">MS · Single + Low Angle · 35mm · Low Bowl</span>
+        </label>
+        <div class="media">
+          <div class="mi-pair">
+          </div>
+        </div>
+      </div>
+      <div class="shot-body">
+        <div class="detail-cols">
+          <div class="detail-col">
+            <div class="col-title">Shot setup</div>
+            <div class="rows">
+              <div class="row"><span class="k">Size</span><span class="v">MS</span></div>
+              <div class="row"><span class="k">Type</span><span class="v">Single + Low Angle</span></div>
+              <div class="row"><span class="k">Focal Length</span><span class="v">35mm</span></div>
+              <div class="row"><span class="k">Grip</span><span class="v">Low Bowl</span></div>
+            </div>
+          </div>
+          <div class="detail-col">
+            <div class="col-title">Camera information</div>
+            <div class="rows">
+              <div class="row"><span class="k">Camera</span><span class="v">Sony FX9 · FF 6K (3840x2160)</span></div>
+              <div class="row"><span class="k">Framelines</span><span class="v">16:9</span></div>
+              <div class="row"><span class="k">Lens</span><span class="v">Canon FD</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="shot" data-media="0" data-text="4.2 pink water she turns. she sees it. she stops scrubbing. size insert type pov focal length 50mm grip tripod camera sony fx9 · ff 6k (3840x2160) framelines 16:9 lens canon fd">
+      <input type="checkbox" class="shot-toggle" id="shot-10">
+      <div class="shot-row">
+        <label class="shot-main" for="shot-10">
+          <span class="shot-caret" aria-hidden="true"></span>
+          <span class="shot-num">4.2</span>
+          <span class="shot-nick">Pink Water</span>
+          <span class="si-vals" title="Size: Insert · Type: POV · Focal Length: 50mm · Grip: Tripod">Insert · POV · 50mm · Tripod</span>
+        </label>
+        <div class="media">
+          <div class="mi-pair">
+          </div>
+        </div>
+      </div>
+      <div class="shot-body">
+        <div class="detail-cols">
+          <div class="detail-col">
+            <div class="col-title">Shot setup</div>
+            <div class="rows">
+              <div class="row"><span class="k">Size</span><span class="v">Insert</span></div>
+              <div class="row"><span class="k">Type</span><span class="v">POV</span></div>
+              <div class="row"><span class="k">Focal Length</span><span class="v">50mm</span></div>
+              <div class="row"><span class="k">Grip</span><span class="v">Tripod</span></div>
+            </div>
+          </div>
+          <div class="detail-col">
+            <div class="col-title">Camera information</div>
+            <div class="rows">
+              <div class="row"><span class="k">Camera</span><span class="v">Sony FX9 · FF 6K (3840x2160)</span></div>
+              <div class="row"><span class="k">Framelines</span><span class="v">16:9</span></div>
+              <div class="row"><span class="k">Lens</span><span class="v">Canon FD</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</details>
+<details class="scene" id="ep0-scene-4" open data-int="0" data-day="1" data-media="0" data-text="scene 5 supermarket parking lot ext day 5.1 5.2 5.3 5.4">
+  <summary class="scene-head">
+    <span class="scene-title">Scene 5</span>
+    <span class="tag tag-type">EXT</span>
+    <span class="tag tag-day">DAY</span>
+    <span class="scene-loc">SUPERMARKET PARKING LOT</span>
+    <span class="scene-media">
+      <details class="mi mi-doc"><summary onclick="event.stopPropagation()" title="Script with coverage for this scene"><span class="cover-thumb cov-0-4"></span><span class="thumb-label">Coverage</span></summary></details>
+    </span>
+  </summary>
+  <div class="shots">
+    <div class="shot" data-media="0" data-text="5.1 anna anna heaves three enormous bags of ice into the boot of a
+small car. she is out of breath and pretending, on
+principle, that she is not.
+a woman leans against the next car over, unhurried, a paper
+coffee cup warming both hands: detective roos (40s). the
+kind of calm that is its own kind of pressure.
+roos
+that's a lot of ice for one
+person.
+anna
+i entertain.
+roos
+mm. we had a call. your husband.
+gerrit. nobody's laid eyes on him
+since the autumn.
+anna
+he left. men do.
+roos
+(a small smile)
+they do. they just usually take
+the car.
+roos tips her cup toward the far corner of the lot, where an
+old volvo sits under a fitted tarp, lovingly, obscenely well
+kept. anna slams the boot.
+anna
+he hated that car.
+roos
+funny. his neighbour says it was
+the love of his life.
+anna
+his neighbour should mind his
+compost.
+roos
+forty years married. and you're
+telling me you didn't notice him
+go.
+anna
+(evenly)
+5.
+detective, at my age you stop
+noticing when men go. you start
+noticing when they stay.
+for the first time, something like respect crosses roos's
+face. she lets it pass.
+roos
+we'll want to look in the house.
+when it's convenient.
+anna
+it's never convenient. that's what
+a house is.
+roos holds her eyes for one beat too long, then raises the
+cup in a little salute and walks off. anna stands very still
+until she is gone. then she leans on the boot and lets out a
+breath she has been holding since october. size mls type single focal length 35mm grip tripod camera sony fx9 · ff 6k (3840x2160) framelines 16:9 lens canon fd">
+      <input type="checkbox" class="shot-toggle" id="shot-11">
+      <div class="shot-row">
+        <label class="shot-main" for="shot-11">
+          <span class="shot-caret" aria-hidden="true"></span>
+          <span class="shot-num">5.1</span>
+          <span class="shot-nick">Anna</span>
+          <span class="si-vals" title="Size: MLS · Type: Single · Focal Length: 35mm · Grip: Tripod">MLS · Single · 35mm · Tripod</span>
+        </label>
+        <div class="media">
+          <div class="mi-pair">
+          </div>
+        </div>
+      </div>
+      <div class="shot-body">
+        <div class="detail-cols">
+          <div class="detail-col">
+            <div class="col-title">Shot setup</div>
+            <div class="rows">
+              <div class="row"><span class="k">Size</span><span class="v">MLS</span></div>
+              <div class="row"><span class="k">Type</span><span class="v">Single</span></div>
+              <div class="row"><span class="k">Focal Length</span><span class="v">35mm</span></div>
+              <div class="row"><span class="k">Grip</span><span class="v">Tripod</span></div>
+            </div>
+          </div>
+          <div class="detail-col">
+            <div class="col-title">Camera information</div>
+            <div class="rows">
+              <div class="row"><span class="k">Camera</span><span class="v">Sony FX9 · FF 6K (3840x2160)</span></div>
+              <div class="row"><span class="k">Framelines</span><span class="v">16:9</span></div>
+              <div class="row"><span class="k">Lens</span><span class="v">Canon FD</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="shot" data-media="0" data-text="5.2 anna anna heaves three enormous bags of ice into the boot of a
+small car. she is out of breath and pretending, on
+principle, that she is not.
+a woman leans against the next car over, unhurried, a paper
+coffee cup warming both hands: detective roos (40s). the
+kind of calm that is its own kind of pressure.
+roos
+that's a lot of ice for one
+person.
+anna
+i entertain.
+roos
+mm. we had a call. your husband.
+gerrit. nobody's laid eyes on him
+since the autumn.
+anna
+he left. men do.
+roos
+(a small smile)
+they do. they just usually take
+the car.
+roos tips her cup toward the far corner of the lot, where an
+old volvo sits under a fitted tarp, lovingly, obscenely well
+kept. anna slams the boot.
+anna
+he hated that car.
+roos
+funny. his neighbour says it was
+the love of his life.
+anna
+his neighbour should mind his
+compost.
+roos
+forty years married. and you're
+telling me you didn't notice him
+go.
+anna
+(evenly)
+5.
+detective, at my age you stop
+noticing when men go. you start
+noticing when they stay.
+for the first time, something like respect crosses roos's
+face. she lets it pass.
+roos
+we'll want to look in the house.
+when it's convenient.
+anna
+it's never convenient. that's what
+a house is.
+roos holds her eyes for one beat too long, then raises the
+cup in a little salute and walks off. anna stands very still
+until she is gone. then she leans on the boot and lets out a
+breath she has been holding since october. size ms type single focal length 35mm grip tripod camera sony fx9 · ff 6k (3840x2160) framelines 16:9 lens canon fd extra info shot from the trunk, ice in the foreground">
+      <input type="checkbox" class="shot-toggle" id="shot-12">
+      <div class="shot-row">
+        <label class="shot-main" for="shot-12">
+          <span class="shot-caret" aria-hidden="true"></span>
+          <span class="shot-num">5.2</span>
+          <span class="shot-nick">Anna</span>
+          <span class="si-vals" title="Size: MS · Type: Single · Focal Length: 35mm · Grip: Tripod · Extra info: Shot from the trunk, ice in the foreground">MS · Single · 35mm · Tripod · Shot from the trunk, ice in the foreground</span>
+        </label>
+        <div class="media">
+          <div class="mi-pair">
+          </div>
+        </div>
+      </div>
+      <div class="shot-body">
+        <div class="detail-cols">
+          <div class="detail-col">
+            <div class="col-title">Shot setup</div>
+            <div class="rows">
+              <div class="row"><span class="k">Size</span><span class="v">MS</span></div>
+              <div class="row"><span class="k">Type</span><span class="v">Single</span></div>
+              <div class="row"><span class="k">Focal Length</span><span class="v">35mm</span></div>
+              <div class="row"><span class="k">Grip</span><span class="v">Tripod</span></div>
+              <div class="row"><span class="k">Extra info</span><span class="v">Shot from the trunk, ice in the foreground</span></div>
+            </div>
+          </div>
+          <div class="detail-col">
+            <div class="col-title">Camera information</div>
+            <div class="rows">
+              <div class="row"><span class="k">Camera</span><span class="v">Sony FX9 · FF 6K (3840x2160)</span></div>
+              <div class="row"><span class="k">Framelines</span><span class="v">16:9</span></div>
+              <div class="row"><span class="k">Lens</span><span class="v">Canon FD</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="shot" data-media="0" data-text="5.3 detective a woman leans against the next car over, unhurried, a paper
+coffee cup warming both hands: detective roos (40s). the
+kind of calm that is its own kind of pressure.
+roos
+that's a lot of ice for one
+person.
+anna
+i entertain.
+roos
+mm. we had a call. your husband.
+gerrit. nobody's laid eyes on him
+since the autumn.
+anna
+he left. men do.
+roos
+(a small smile)
+they do. they just usually take
+the car.
+roos tips her cup toward the far corner of the lot, where an
+old volvo sits under a fitted tarp, lovingly, obscenely well
+kept. anna slams the boot.
+anna
+he hated that car.
+roos
+funny. his neighbour says it was
+the love of his life.
+anna
+his neighbour should mind his
+compost.
+roos
+forty years married. and you're
+telling me you didn't notice him
+go.
+anna
+(evenly)
+5.
+detective, at my age you stop
+noticing when men go. you start
+noticing when they stay.
+for the first time, something like respect crosses roos's
+face. she lets it pass.
+roos
+we'll want to look in the house.
+when it's convenient.
+anna
+it's never convenient. that's what
+a house is.
+roos holds her eyes for one beat too long, then raises the
+cup in a little salute and walks off. anna stands very still
+until she is gone. then she leans on the boot and lets out a
+breath she has been holding since october. size mls type ots focal length 50mm grip tripod camera sony fx9 · ff 6k (3840x2160) framelines 16:9 lens canon fd">
+      <input type="checkbox" class="shot-toggle" id="shot-13">
+      <div class="shot-row">
+        <label class="shot-main" for="shot-13">
+          <span class="shot-caret" aria-hidden="true"></span>
+          <span class="shot-num">5.3</span>
+          <span class="shot-nick">Detective</span>
+          <span class="si-vals" title="Size: MLS · Type: OTS · Focal Length: 50mm · Grip: Tripod">MLS · OTS · 50mm · Tripod</span>
+        </label>
+        <div class="media">
+          <div class="mi-pair">
+          </div>
+        </div>
+      </div>
+      <div class="shot-body">
+        <div class="detail-cols">
+          <div class="detail-col">
+            <div class="col-title">Shot setup</div>
+            <div class="rows">
+              <div class="row"><span class="k">Size</span><span class="v">MLS</span></div>
+              <div class="row"><span class="k">Type</span><span class="v">OTS</span></div>
+              <div class="row"><span class="k">Focal Length</span><span class="v">50mm</span></div>
+              <div class="row"><span class="k">Grip</span><span class="v">Tripod</span></div>
+            </div>
+          </div>
+          <div class="detail-col">
+            <div class="col-title">Camera information</div>
+            <div class="rows">
+              <div class="row"><span class="k">Camera</span><span class="v">Sony FX9 · FF 6K (3840x2160)</span></div>
+              <div class="row"><span class="k">Framelines</span><span class="v">16:9</span></div>
+              <div class="row"><span class="k">Lens</span><span class="v">Canon FD</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="shot" data-media="0" data-text="5.4 detective a woman leans against the next car over, unhurried, a paper
+coffee cup warming both hands: detective roos (40s). the
+kind of calm that is its own kind of pressure.
+roos
+that's a lot of ice for one
+person.
+anna
+i entertain.
+roos
+mm. we had a call. your husband.
+gerrit. nobody's laid eyes on him
+since the autumn.
+anna
+he left. men do.
+roos
+(a small smile)
+they do. they just usually take
+the car.
+roos tips her cup toward the far corner of the lot, where an
+old volvo sits under a fitted tarp, lovingly, obscenely well
+kept. anna slams the boot.
+anna
+he hated that car.
+roos
+funny. his neighbour says it was
+the love of his life.
+anna
+his neighbour should mind his
+compost.
+roos
+forty years married. and you're
+telling me you didn't notice him
+go.
+anna
+(evenly)
+5.
+detective, at my age you stop
+noticing when men go. you start
+noticing when they stay.
+for the first time, something like respect crosses roos's
+face. she lets it pass.
+roos
+we'll want to look in the house.
+when it's convenient.
+anna
+it's never convenient. that's what
+a house is.
+roos holds her eyes for one beat too long, then raises the
+cup in a little salute and walks off. anna stands very still
+until she is gone. then she leans on the boot and lets out a
+breath she has been holding since october. size cu type single focal length 85mm grip tripod camera sony fx9 · ff 6k (3840x2160) framelines 16:9 lens canon fd">
+      <input type="checkbox" class="shot-toggle" id="shot-14">
+      <div class="shot-row">
+        <label class="shot-main" for="shot-14">
+          <span class="shot-caret" aria-hidden="true"></span>
+          <span class="shot-num">5.4</span>
+          <span class="shot-nick">Detective</span>
+          <span class="si-vals" title="Size: CU · Type: Single · Focal Length: 85mm · Grip: Tripod">CU · Single · 85mm · Tripod</span>
+        </label>
+        <div class="media">
+          <div class="mi-pair">
+          </div>
+        </div>
+      </div>
+      <div class="shot-body">
+        <div class="detail-cols">
+          <div class="detail-col">
+            <div class="col-title">Shot setup</div>
+            <div class="rows">
+              <div class="row"><span class="k">Size</span><span class="v">CU</span></div>
+              <div class="row"><span class="k">Type</span><span class="v">Single</span></div>
+              <div class="row"><span class="k">Focal Length</span><span class="v">85mm</span></div>
+              <div class="row"><span class="k">Grip</span><span class="v">Tripod</span></div>
+            </div>
+          </div>
+          <div class="detail-col">
+            <div class="col-title">Camera information</div>
+            <div class="rows">
+              <div class="row"><span class="k">Camera</span><span class="v">Sony FX9 · FF 6K (3840x2160)</span></div>
+              <div class="row"><span class="k">Framelines</span><span class="v">16:9</span></div>
+              <div class="row"><span class="k">Lens</span><span class="v">Canon FD</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</details>
+<details class="scene" id="ep0-scene-5" open data-int="1" data-day="1" data-media="0" data-text="scene 6 supermarket - freezer aisle int day 6.1 6.2">
+  <summary class="scene-head">
+    <span class="scene-title">Scene 6</span>
+    <span class="tag tag-type">INT</span>
+    <span class="tag tag-day">DAY</span>
+    <span class="scene-loc">SUPERMARKET - FREEZER AISLE</span>
+    <span class="scene-media">
+      <details class="mi mi-doc"><summary onclick="event.stopPropagation()" title="Script with coverage for this scene"><span class="cover-thumb cov-0-5"></span><span class="thumb-label">Coverage</span></summary></details>
+    </span>
+  </summary>
+  <div class="shots">
+    <div class="shot" data-media="0" data-text="6.1 anna cold blue light. anna stands very still in front of the open
+freezer cases, letting the chill wash over her face, her
+eyes closed. for one long moment she looks almost happy.
+a young clerk edges past with a restocking trolley, watching
+her the way you watch weather.
+clerk
+you alright there?
+anna
+(eyes still closed)
+never better, dear.
+she takes one more slow breath of the cold, then closes the
+case with the gentleness of a goodnight. size cu type single + low angle focal length 50mm grip low bowl camera sony fx9 · ff 6k (3840x2160) framelines 16:9 lens canon fd">
+      <input type="checkbox" class="shot-toggle" id="shot-15">
+      <div class="shot-row">
+        <label class="shot-main" for="shot-15">
+          <span class="shot-caret" aria-hidden="true"></span>
+          <span class="shot-num">6.1</span>
+          <span class="shot-nick">Anna</span>
+          <span class="si-vals" title="Size: CU · Type: Single + Low Angle · Focal Length: 50mm · Grip: Low Bowl">CU · Single + Low Angle · 50mm · Low Bowl</span>
+        </label>
+        <div class="media">
+          <div class="mi-pair">
+          </div>
+        </div>
+      </div>
+      <div class="shot-body">
+        <div class="detail-cols">
+          <div class="detail-col">
+            <div class="col-title">Shot setup</div>
+            <div class="rows">
+              <div class="row"><span class="k">Size</span><span class="v">CU</span></div>
+              <div class="row"><span class="k">Type</span><span class="v">Single + Low Angle</span></div>
+              <div class="row"><span class="k">Focal Length</span><span class="v">50mm</span></div>
+              <div class="row"><span class="k">Grip</span><span class="v">Low Bowl</span></div>
+            </div>
+          </div>
+          <div class="detail-col">
+            <div class="col-title">Camera information</div>
+            <div class="rows">
+              <div class="row"><span class="k">Camera</span><span class="v">Sony FX9 · FF 6K (3840x2160)</span></div>
+              <div class="row"><span class="k">Framelines</span><span class="v">16:9</span></div>
+              <div class="row"><span class="k">Lens</span><span class="v">Canon FD</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="shot" data-media="0" data-text="6.2 anna and clerk cold blue light. anna stands very still in front of the open
+freezer cases, letting the chill wash over her face, her
+eyes closed. for one long moment she looks almost happy.
+a young clerk edges past with a restocking trolley, watching
+her the way you watch weather.
+clerk
+you alright there?
+anna
+(eyes still closed)
+never better, dear.
+she takes one more slow breath of the cold, then closes the
+case with the gentleness of a goodnight. size ws type two shot + profile shot focal length 35mm grip tripod camera sony fx9 · ff 6k (3840x2160) framelines 16:9 lens canon fd">
+      <input type="checkbox" class="shot-toggle" id="shot-16">
+      <div class="shot-row">
+        <label class="shot-main" for="shot-16">
+          <span class="shot-caret" aria-hidden="true"></span>
+          <span class="shot-num">6.2</span>
+          <span class="shot-nick">Anna and Clerk</span>
+          <span class="si-vals" title="Size: WS · Type: Two Shot + Profile Shot · Focal Length: 35mm · Grip: Tripod">WS · Two Shot + Profile Shot · 35mm · Tripod</span>
+        </label>
+        <div class="media">
+          <div class="mi-pair">
+          </div>
+        </div>
+      </div>
+      <div class="shot-body">
+        <div class="detail-cols">
+          <div class="detail-col">
+            <div class="col-title">Shot setup</div>
+            <div class="rows">
+              <div class="row"><span class="k">Size</span><span class="v">WS</span></div>
+              <div class="row"><span class="k">Type</span><span class="v">Two Shot + Profile Shot</span></div>
+              <div class="row"><span class="k">Focal Length</span><span class="v">35mm</span></div>
+              <div class="row"><span class="k">Grip</span><span class="v">Tripod</span></div>
+            </div>
+          </div>
+          <div class="detail-col">
+            <div class="col-title">Camera information</div>
+            <div class="rows">
+              <div class="row"><span class="k">Camera</span><span class="v">Sony FX9 · FF 6K (3840x2160)</span></div>
+              <div class="row"><span class="k">Framelines</span><span class="v">16:9</span></div>
+              <div class="row"><span class="k">Lens</span><span class="v">Canon FD</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</details>
+<details class="scene" id="ep0-scene-6" open data-int="1" data-day="0" data-media="0" data-text="scene 7 anna's bedroom int night 7.1 7.2 7.3">
+  <summary class="scene-head">
+    <span class="scene-title">Scene 7</span>
+    <span class="tag tag-type">INT</span>
+    <span class="tag tag-night">NIGHT</span>
+    <span class="scene-loc">ANNA'S BEDROOM</span>
+    <span class="scene-media">
+      <details class="mi mi-doc"><summary onclick="event.stopPropagation()" title="Script with coverage for this scene"><span class="cover-thumb cov-0-6"></span><span class="thumb-label">Coverage</span></summary></details>
+    </span>
+  </summary>
+  <div class="shots">
+    <div class="shot" data-media="0" data-text="7.1 anna anna lies rigid on top of the covers, fully dressed, shoes
+on, ready for something. on the nightstand: a wedding photo.
+a younger anna. a booming, red-faced gerrit. and between
+them, absurd and magnificent, a five-tier cake.
+the hum finds her even here, coming up soft through the
+mattress. she lifts the photo and speaks to it, tired,
+6.
+tender, and quietly furious.
+anna
+forty years i fed you. forty. and
+you couldn't wait one more day for
+the party.
+(a breath)
+you dropped face-first into the
+trifle before the guests even
+arrived. typical.
+anna
+(softer)
+so i kept your good suit on. and i
+kept the cake. somebody in this
+house was going to finish what
+they started.
+she sets the photo face-down on the nightstand with a small,
+final click.
+anna
+tomorrow, my love, you thaw. size ws type overhead focal length 20mm grip top shot rig camera sony fx9 · ff 6k (3840x2160) framelines 16:9 lens canon fd">
+      <input type="checkbox" class="shot-toggle" id="shot-17">
+      <div class="shot-row">
+        <label class="shot-main" for="shot-17">
+          <span class="shot-caret" aria-hidden="true"></span>
+          <span class="shot-num">7.1</span>
+          <span class="shot-nick">Anna</span>
+          <span class="si-vals" title="Size: WS · Type: Overhead · Focal Length: 20mm · Grip: Top Shot Rig">WS · Overhead · 20mm · Top Shot Rig</span>
+        </label>
+        <div class="media">
+          <div class="mi-pair">
+          </div>
+        </div>
+      </div>
+      <div class="shot-body">
+        <div class="detail-cols">
+          <div class="detail-col">
+            <div class="col-title">Shot setup</div>
+            <div class="rows">
+              <div class="row"><span class="k">Size</span><span class="v">WS</span></div>
+              <div class="row"><span class="k">Type</span><span class="v">Overhead</span></div>
+              <div class="row"><span class="k">Focal Length</span><span class="v">20mm</span></div>
+              <div class="row"><span class="k">Grip</span><span class="v">Top Shot Rig</span></div>
+            </div>
+          </div>
+          <div class="detail-col">
+            <div class="col-title">Camera information</div>
+            <div class="rows">
+              <div class="row"><span class="k">Camera</span><span class="v">Sony FX9 · FF 6K (3840x2160)</span></div>
+              <div class="row"><span class="k">Framelines</span><span class="v">16:9</span></div>
+              <div class="row"><span class="k">Lens</span><span class="v">Canon FD</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="shot" data-media="0" data-text="7.2 anna anna lies rigid on top of the covers, fully dressed, shoes
+on, ready for something. on the nightstand: a wedding photo.
+a younger anna. a booming, red-faced gerrit. and between
+them, absurd and magnificent, a five-tier cake.
+the hum finds her even here, coming up soft through the
+mattress. she lifts the photo and speaks to it, tired,
+6.
+tender, and quietly furious.
+anna
+forty years i fed you. forty. and
+you couldn't wait one more day for
+the party.
+(a breath)
+you dropped face-first into the
+trifle before the guests even
+arrived. typical.
+anna
+(softer)
+so i kept your good suit on. and i
+kept the cake. somebody in this
+house was going to finish what
+they started.
+she sets the photo face-down on the nightstand with a small,
+final click.
+anna
+tomorrow, my love, you thaw. size mcu type overhead focal length 20mm grip top shot rig camera sony fx9 · ff 6k (3840x2160) framelines 16:9 lens canon fd">
+      <input type="checkbox" class="shot-toggle" id="shot-18">
+      <div class="shot-row">
+        <label class="shot-main" for="shot-18">
+          <span class="shot-caret" aria-hidden="true"></span>
+          <span class="shot-num">7.2</span>
+          <span class="shot-nick">Anna</span>
+          <span class="si-vals" title="Size: MCU · Type: Overhead · Focal Length: 20mm · Grip: Top Shot Rig">MCU · Overhead · 20mm · Top Shot Rig</span>
+        </label>
+        <div class="media">
+          <div class="mi-pair">
+          </div>
+        </div>
+      </div>
+      <div class="shot-body">
+        <div class="detail-cols">
+          <div class="detail-col">
+            <div class="col-title">Shot setup</div>
+            <div class="rows">
+              <div class="row"><span class="k">Size</span><span class="v">MCU</span></div>
+              <div class="row"><span class="k">Type</span><span class="v">Overhead</span></div>
+              <div class="row"><span class="k">Focal Length</span><span class="v">20mm</span></div>
+              <div class="row"><span class="k">Grip</span><span class="v">Top Shot Rig</span></div>
+            </div>
+          </div>
+          <div class="detail-col">
+            <div class="col-title">Camera information</div>
+            <div class="rows">
+              <div class="row"><span class="k">Camera</span><span class="v">Sony FX9 · FF 6K (3840x2160)</span></div>
+              <div class="row"><span class="k">Framelines</span><span class="v">16:9</span></div>
+              <div class="row"><span class="k">Lens</span><span class="v">Canon FD</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="shot" data-media="0" data-text="7.3 photo she sets the photo face-down on the nightstand with a small,
+final click. size insert type profile shot focal length 35mm grip tripod camera sony fx9 · ff 6k (3840x2160) framelines 16:9 lens canon fd">
+      <input type="checkbox" class="shot-toggle" id="shot-19">
+      <div class="shot-row">
+        <label class="shot-main" for="shot-19">
+          <span class="shot-caret" aria-hidden="true"></span>
+          <span class="shot-num">7.3</span>
+          <span class="shot-nick">Photo</span>
+          <span class="si-vals" title="Size: Insert · Type: Profile Shot · Focal Length: 35mm · Grip: Tripod">Insert · Profile Shot · 35mm · Tripod</span>
+        </label>
+        <div class="media">
+          <div class="mi-pair">
+          </div>
+        </div>
+      </div>
+      <div class="shot-body">
+        <div class="detail-cols">
+          <div class="detail-col">
+            <div class="col-title">Shot setup</div>
+            <div class="rows">
+              <div class="row"><span class="k">Size</span><span class="v">Insert</span></div>
+              <div class="row"><span class="k">Type</span><span class="v">Profile Shot</span></div>
+              <div class="row"><span class="k">Focal Length</span><span class="v">35mm</span></div>
+              <div class="row"><span class="k">Grip</span><span class="v">Tripod</span></div>
+            </div>
+          </div>
+          <div class="detail-col">
+            <div class="col-title">Camera information</div>
+            <div class="rows">
+              <div class="row"><span class="k">Camera</span><span class="v">Sony FX9 · FF 6K (3840x2160)</span></div>
+              <div class="row"><span class="k">Framelines</span><span class="v">16:9</span></div>
+              <div class="row"><span class="k">Lens</span><span class="v">Canon FD</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</details>
+<details class="scene" id="ep0-scene-7" open data-int="1" data-day="0" data-media="0" data-text="scene 8 cellar int night 8.1 8.2 8.3 8.4">
+  <summary class="scene-head">
+    <span class="scene-title">Scene 8</span>
+    <span class="tag tag-type">INT</span>
+    <span class="tag tag-night">NIGHT</span>
+    <span class="scene-loc">CELLAR</span>
+    <span class="scene-media">
+      <details class="mi mi-doc"><summary onclick="event.stopPropagation()" title="Script with coverage for this scene"><span class="cover-thumb cov-0-7"></span><span class="thumb-label">Coverage</span></summary></details>
+    </span>
+  </summary>
+  <div class="shots">
+    <div class="shot" data-media="0" data-text="8.1 padlock bolt cutters. anna's hands, steadier now, close them around
+the padlock. it gives with a crack that bounces off the
+stone and comes back twice. size insert → xcu type push in focal length 35mm grip slider camera sony fx9 · ff 6k (3840x2160) framelines 16:9 lens canon fd extra info macro lens">
+      <input type="checkbox" class="shot-toggle" id="shot-20">
+      <div class="shot-row">
+        <label class="shot-main" for="shot-20">
+          <span class="shot-caret" aria-hidden="true"></span>
+          <span class="shot-num">8.1</span>
+          <span class="shot-nick">Padlock</span>
+          <span class="si-vals" title="Size: Insert → XCU · Type: Push In · Focal Length: 35mm · Grip: Slider · Extra info: Macro lens">Insert → XCU · Push In · 35mm · Slider · Macro lens</span>
+        </label>
+        <div class="media">
+          <div class="mi-pair">
+          </div>
+        </div>
+      </div>
+      <div class="shot-body">
+        <div class="detail-cols">
+          <div class="detail-col">
+            <div class="col-title">Shot setup</div>
+            <div class="rows">
+              <div class="row"><span class="k">Size</span><span class="v">Insert → XCU</span></div>
+              <div class="row"><span class="k">Type</span><span class="v">Push In</span></div>
+              <div class="row"><span class="k">Focal Length</span><span class="v">35mm</span></div>
+              <div class="row"><span class="k">Grip</span><span class="v">Slider</span></div>
+              <div class="row"><span class="k">Extra info</span><span class="v">Macro lens</span></div>
+            </div>
+          </div>
+          <div class="detail-col">
+            <div class="col-title">Camera information</div>
+            <div class="rows">
+              <div class="row"><span class="k">Camera</span><span class="v">Sony FX9 · FF 6K (3840x2160)</span></div>
+              <div class="row"><span class="k">Framelines</span><span class="v">16:9</span></div>
+              <div class="row"><span class="k">Lens</span><span class="v">Canon FD</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="shot" data-media="0" data-text="8.2 anna she lifts the freezer lid. a slow cloud of frozen fog rolls
+out over the rim and pools around her ankles. she stares
+down into the white.
+and there it is.
+the cake. five glorious tiers, pale with frost, immaculate,
+frosted like a wedding that refused to end -- and only
+slightly, tragically, beginning to lean. packed around it in
+the ice: jars of prize gooseberries, a dusty bottle of
+dessert wine, and two forks laid side by side like a
+promise.
+no gerrit. just the cake he never got to cut.
+anna
+(barely)
+there you are.
+7.
+she reaches in with enormous care and straightens the
+toppling top tier. a tiny sugar bride and groom wobble on
+their pillar and, at the last second, hold. size ms type low angle focal length 35mm grip low bowl camera sony fx9 · ff 6k (3840x2160) framelines 16:9 lens canon fd extra info shot from inside the freezer">
+      <input type="checkbox" class="shot-toggle" id="shot-21">
+      <div class="shot-row">
+        <label class="shot-main" for="shot-21">
+          <span class="shot-caret" aria-hidden="true"></span>
+          <span class="shot-num">8.2</span>
+          <span class="shot-nick">Anna</span>
+          <span class="si-vals" title="Size: MS · Type: Low Angle · Focal Length: 35mm · Grip: Low Bowl · Extra info: Shot from inside the freezer">MS · Low Angle · 35mm · Low Bowl · Shot from inside the freezer</span>
+        </label>
+        <div class="media">
+          <div class="mi-pair">
+          </div>
+        </div>
+      </div>
+      <div class="shot-body">
+        <div class="detail-cols">
+          <div class="detail-col">
+            <div class="col-title">Shot setup</div>
+            <div class="rows">
+              <div class="row"><span class="k">Size</span><span class="v">MS</span></div>
+              <div class="row"><span class="k">Type</span><span class="v">Low Angle</span></div>
+              <div class="row"><span class="k">Focal Length</span><span class="v">35mm</span></div>
+              <div class="row"><span class="k">Grip</span><span class="v">Low Bowl</span></div>
+              <div class="row"><span class="k">Extra info</span><span class="v">Shot from inside the freezer</span></div>
+            </div>
+          </div>
+          <div class="detail-col">
+            <div class="col-title">Camera information</div>
+            <div class="rows">
+              <div class="row"><span class="k">Camera</span><span class="v">Sony FX9 · FF 6K (3840x2160)</span></div>
+              <div class="row"><span class="k">Framelines</span><span class="v">16:9</span></div>
+              <div class="row"><span class="k">Lens</span><span class="v">Canon FD</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="shot" data-media="0" data-text="8.3 cake she lifts the freezer lid. a slow cloud of frozen fog rolls
+out over the rim and pools around her ankles. she stares
+down into the white.
+and there it is.
+the cake. five glorious tiers, pale with frost, immaculate,
+frosted like a wedding that refused to end -- and only
+slightly, tragically, beginning to lean. packed around it in
+the ice: jars of prize gooseberries, a dusty bottle of
+dessert wine, and two forks laid side by side like a
+promise.
+no gerrit. just the cake he never got to cut.
+anna
+(barely)
+there you are.
+7.
+she reaches in with enormous care and straightens the
+toppling top tier. a tiny sugar bride and groom wobble on
+their pillar and, at the last second, hold. size cu type high angle + pov focal length 35mm grip jib camera sony fx9 · ff 6k (3840x2160) framelines 16:9 lens canon fd">
+      <input type="checkbox" class="shot-toggle" id="shot-22">
+      <div class="shot-row">
+        <label class="shot-main" for="shot-22">
+          <span class="shot-caret" aria-hidden="true"></span>
+          <span class="shot-num">8.3</span>
+          <span class="shot-nick">Cake</span>
+          <span class="si-vals" title="Size: CU · Type: High Angle + POV · Focal Length: 35mm · Grip: Jib">CU · High Angle + POV · 35mm · Jib</span>
+        </label>
+        <div class="media">
+          <div class="mi-pair">
+          </div>
+        </div>
+      </div>
+      <div class="shot-body">
+        <div class="detail-cols">
+          <div class="detail-col">
+            <div class="col-title">Shot setup</div>
+            <div class="rows">
+              <div class="row"><span class="k">Size</span><span class="v">CU</span></div>
+              <div class="row"><span class="k">Type</span><span class="v">High Angle + POV</span></div>
+              <div class="row"><span class="k">Focal Length</span><span class="v">35mm</span></div>
+              <div class="row"><span class="k">Grip</span><span class="v">Jib</span></div>
+            </div>
+          </div>
+          <div class="detail-col">
+            <div class="col-title">Camera information</div>
+            <div class="rows">
+              <div class="row"><span class="k">Camera</span><span class="v">Sony FX9 · FF 6K (3840x2160)</span></div>
+              <div class="row"><span class="k">Framelines</span><span class="v">16:9</span></div>
+              <div class="row"><span class="k">Lens</span><span class="v">Canon FD</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="shot" data-media="0" data-text="8.4   camera sony fx9 · ff 6k (3840x2160) framelines 16:9 lens canon fd">
+      <input type="checkbox" class="shot-toggle" id="shot-23">
+      <div class="shot-row">
+        <label class="shot-main" for="shot-23">
+          <span class="shot-caret" aria-hidden="true"></span>
+          <span class="shot-num">8.4</span>
+          <span class="si-vals si-empty">No details</span>
+        </label>
+        <div class="media">
+          <div class="mi-pair">
+          </div>
+        </div>
+      </div>
+      <div class="shot-body">
+        <div class="detail-cols">
+          <div class="detail-col">
+            <div class="col-title">Camera information</div>
+            <div class="rows">
+              <div class="row"><span class="k">Camera</span><span class="v">Sony FX9 · FF 6K (3840x2160)</span></div>
+              <div class="row"><span class="k">Framelines</span><span class="v">16:9</span></div>
+              <div class="row"><span class="k">Lens</span><span class="v">Canon FD</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</details>
+<details class="scene" id="ep0-scene-8" open data-int="0" data-day="1" data-media="0" data-text="scene 9 forest edge ext day 9.1 9.2 9.3">
+  <summary class="scene-head">
+    <span class="scene-title">Scene 9</span>
+    <span class="tag tag-type">EXT</span>
+    <span class="tag tag-day">DAY</span>
+    <span class="scene-loc">FOREST EDGE</span>
+  </summary>
+  <div class="shots">
+    <div class="shot" data-media="0" data-text="9.1   camera sony fx9 · ff 6k (3840x2160) framelines 16:9 lens canon fd">
+      <input type="checkbox" class="shot-toggle" id="shot-24">
+      <div class="shot-row">
+        <label class="shot-main" for="shot-24">
+          <span class="shot-caret" aria-hidden="true"></span>
+          <span class="shot-num">9.1</span>
+          <span class="si-vals si-empty">No details</span>
+        </label>
+        <div class="media">
+          <div class="mi-pair">
+          </div>
+        </div>
+      </div>
+      <div class="shot-body">
+        <div class="detail-cols">
+          <div class="detail-col">
+            <div class="col-title">Camera information</div>
+            <div class="rows">
+              <div class="row"><span class="k">Camera</span><span class="v">Sony FX9 · FF 6K (3840x2160)</span></div>
+              <div class="row"><span class="k">Framelines</span><span class="v">16:9</span></div>
+              <div class="row"><span class="k">Lens</span><span class="v">Canon FD</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="shot" data-media="0" data-text="9.2   camera sony fx9 · ff 6k (3840x2160) framelines 16:9 lens canon fd">
+      <input type="checkbox" class="shot-toggle" id="shot-25">
+      <div class="shot-row">
+        <label class="shot-main" for="shot-25">
+          <span class="shot-caret" aria-hidden="true"></span>
+          <span class="shot-num">9.2</span>
+          <span class="si-vals si-empty">No details</span>
+        </label>
+        <div class="media">
+          <div class="mi-pair">
+          </div>
+        </div>
+      </div>
+      <div class="shot-body">
+        <div class="detail-cols">
+          <div class="detail-col">
+            <div class="col-title">Camera information</div>
+            <div class="rows">
+              <div class="row"><span class="k">Camera</span><span class="v">Sony FX9 · FF 6K (3840x2160)</span></div>
+              <div class="row"><span class="k">Framelines</span><span class="v">16:9</span></div>
+              <div class="row"><span class="k">Lens</span><span class="v">Canon FD</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="shot" data-media="0" data-text="9.3   camera sony fx9 · ff 6k (3840x2160) framelines 16:9 lens canon fd">
+      <input type="checkbox" class="shot-toggle" id="shot-26">
+      <div class="shot-row">
+        <label class="shot-main" for="shot-26">
+          <span class="shot-caret" aria-hidden="true"></span>
+          <span class="shot-num">9.3</span>
+          <span class="si-vals si-empty">No details</span>
+        </label>
+        <div class="media">
+          <div class="mi-pair">
+          </div>
+        </div>
+      </div>
+      <div class="shot-body">
+        <div class="detail-cols">
+          <div class="detail-col">
+            <div class="col-title">Camera information</div>
+            <div class="rows">
+              <div class="row"><span class="k">Camera</span><span class="v">Sony FX9 · FF 6K (3840x2160)</span></div>
+              <div class="row"><span class="k">Framelines</span><span class="v">16:9</span></div>
+              <div class="row"><span class="k">Lens</span><span class="v">Canon FD</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</details>
+<details class="scene" id="ep0-scene-9" open data-int="1" data-day="0" data-media="0" data-text="scene 10 anna's kitchen int night 10.1 10.2 10.3 10.4 10.5">
+  <summary class="scene-head">
+    <span class="scene-title">Scene 10</span>
+    <span class="tag tag-type">INT</span>
+    <span class="tag tag-night">NIGHT</span>
+    <span class="scene-loc">ANNA'S KITCHEN</span>
+  </summary>
+  <div class="shots">
+    <div class="shot" data-media="0" data-text="10.1   camera sony fx9 · ff 6k (3840x2160) framelines 16:9 lens canon fd">
+      <input type="checkbox" class="shot-toggle" id="shot-27">
+      <div class="shot-row">
+        <label class="shot-main" for="shot-27">
+          <span class="shot-caret" aria-hidden="true"></span>
+          <span class="shot-num">10.1</span>
+          <span class="si-vals si-empty">No details</span>
+        </label>
+        <div class="media">
+          <div class="mi-pair">
+          </div>
+        </div>
+      </div>
+      <div class="shot-body">
+        <div class="detail-cols">
+          <div class="detail-col">
+            <div class="col-title">Camera information</div>
+            <div class="rows">
+              <div class="row"><span class="k">Camera</span><span class="v">Sony FX9 · FF 6K (3840x2160)</span></div>
+              <div class="row"><span class="k">Framelines</span><span class="v">16:9</span></div>
+              <div class="row"><span class="k">Lens</span><span class="v">Canon FD</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="shot" data-media="0" data-text="10.2   camera sony fx9 · ff 6k (3840x2160) framelines 16:9 lens canon fd">
+      <input type="checkbox" class="shot-toggle" id="shot-28">
+      <div class="shot-row">
+        <label class="shot-main" for="shot-28">
+          <span class="shot-caret" aria-hidden="true"></span>
+          <span class="shot-num">10.2</span>
+          <span class="si-vals si-empty">No details</span>
+        </label>
+        <div class="media">
+          <div class="mi-pair">
+          </div>
+        </div>
+      </div>
+      <div class="shot-body">
+        <div class="detail-cols">
+          <div class="detail-col">
+            <div class="col-title">Camera information</div>
+            <div class="rows">
+              <div class="row"><span class="k">Camera</span><span class="v">Sony FX9 · FF 6K (3840x2160)</span></div>
+              <div class="row"><span class="k">Framelines</span><span class="v">16:9</span></div>
+              <div class="row"><span class="k">Lens</span><span class="v">Canon FD</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="shot" data-media="0" data-text="10.3   camera sony fx9 · ff 6k (3840x2160) framelines 16:9 lens canon fd">
+      <input type="checkbox" class="shot-toggle" id="shot-29">
+      <div class="shot-row">
+        <label class="shot-main" for="shot-29">
+          <span class="shot-caret" aria-hidden="true"></span>
+          <span class="shot-num">10.3</span>
+          <span class="si-vals si-empty">No details</span>
+        </label>
+        <div class="media">
+          <div class="mi-pair">
+          </div>
+        </div>
+      </div>
+      <div class="shot-body">
+        <div class="detail-cols">
+          <div class="detail-col">
+            <div class="col-title">Camera information</div>
+            <div class="rows">
+              <div class="row"><span class="k">Camera</span><span class="v">Sony FX9 · FF 6K (3840x2160)</span></div>
+              <div class="row"><span class="k">Framelines</span><span class="v">16:9</span></div>
+              <div class="row"><span class="k">Lens</span><span class="v">Canon FD</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="shot" data-media="0" data-text="10.4   camera sony fx9 · ff 6k (3840x2160) framelines 16:9 lens canon fd">
+      <input type="checkbox" class="shot-toggle" id="shot-30">
+      <div class="shot-row">
+        <label class="shot-main" for="shot-30">
+          <span class="shot-caret" aria-hidden="true"></span>
+          <span class="shot-num">10.4</span>
+          <span class="si-vals si-empty">No details</span>
+        </label>
+        <div class="media">
+          <div class="mi-pair">
+          </div>
+        </div>
+      </div>
+      <div class="shot-body">
+        <div class="detail-cols">
+          <div class="detail-col">
+            <div class="col-title">Camera information</div>
+            <div class="rows">
+              <div class="row"><span class="k">Camera</span><span class="v">Sony FX9 · FF 6K (3840x2160)</span></div>
+              <div class="row"><span class="k">Framelines</span><span class="v">16:9</span></div>
+              <div class="row"><span class="k">Lens</span><span class="v">Canon FD</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="shot" data-media="0" data-text="10.5   camera sony fx9 · ff 6k (3840x2160) framelines 16:9 lens canon fd">
+      <input type="checkbox" class="shot-toggle" id="shot-31">
+      <div class="shot-row">
+        <label class="shot-main" for="shot-31">
+          <span class="shot-caret" aria-hidden="true"></span>
+          <span class="shot-num">10.5</span>
+          <span class="si-vals si-empty">No details</span>
+        </label>
+        <div class="media">
+          <div class="mi-pair">
+          </div>
+        </div>
+      </div>
+      <div class="shot-body">
+        <div class="detail-cols">
+          <div class="detail-col">
+            <div class="col-title">Camera information</div>
+            <div class="rows">
+              <div class="row"><span class="k">Camera</span><span class="v">Sony FX9 · FF 6K (3840x2160)</span></div>
+              <div class="row"><span class="k">Framelines</span><span class="v">16:9</span></div>
+              <div class="row"><span class="k">Lens</span><span class="v">Canon FD</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</details>
+        <div class="noresults" hidden>
+          <p><b>No matching shots.</b></p>
+          <p>Try a different search or clear the filters.</p>
+        </div>
+      </div>
+      <div class="view-days" hidden></div>
+    </main>
+  </div>
+</section>
+</div>
+
+<button class="totop" id="totop" type="button" aria-label="Back to top" hidden>↑</button>
+
+<script>var CP_EPISODES = [[]].map(function (s) { return { schedule: s }; });</script>
+<script>
+(function () {
+  function qsa(sel, ctx) { return Array.prototype.slice.call((ctx || document).querySelectorAll(sel)); }
+  var q = document.getElementById('q');
+  var clearq = document.getElementById('clearq');
+  var countEl = document.getElementById('count');
+  var resetEl = document.getElementById('reset');
+  var toggleAll = document.getElementById('toggleall');
+  var chips = qsa('.chip');
+  var active = { type: null, time: null, media: false };
+  // Episodes live in one page; a series switches which is shown (feature = 1).
+  var episodeEls = qsa('.episode');
+  var current = 0;
+  var daysView = false;
+  function ep() { return episodeEls[current]; }
+
+  // Reveal the filter bar only now that we know scripting is available.
+  var toolbarEl = document.getElementById('toolbar');
+  toolbarEl.hidden = false;
+
+  // Keep --sticky in step with the real toolbar height. On narrow phones the
+  // toolbar wraps to two rows and grows past its 60px default; without this
+  // the stuck "Day N" header tucks under it and its top text is clipped.
+  function syncSticky() {
+    var h = toolbarEl.offsetHeight;
+    if (h > 0) document.documentElement.style.setProperty('--sticky', h + 'px');
+  }
+  syncSticky();
+  window.addEventListener('resize', syncSticky);
+  window.addEventListener('orientationchange', function () { setTimeout(syncSticky, 200); });
+
+  // Shooting-day view: built on demand by cloning scene cards per the episode's
+  // schedule, so scenes split across days show whole (off-day shots greyed out).
+  var uid = 0;
+  // Shooting-day view for one episode: clone its scene cards per its schedule.
+  function buildDays(epEl, idx) {
+    if (epEl.dataset.daysBuilt) return;
+    epEl.dataset.daysBuilt = '1';
+    var container = epEl.querySelector('.view-days');
+    var sceneNodes = qsa('.view-scenes .scene', epEl);
+    var schedule = (CP_EPISODES[idx] && CP_EPISODES[idx].schedule) || [];
+    schedule.forEach(function (day) {
+      var sec = document.createElement('section');
+      sec.className = 'day-group';
+      sec.id = 'day-' + day.n;
+      if (day.iso) sec.setAttribute('data-date', day.iso);
+      if (day.iso && day.iso === todayISO()) sec.classList.add('is-today');
+      var h = document.createElement('div');
+      h.className = 'day-title';
+      h.innerHTML = '<span class="day-n">Day ' + day.n + '</span>' +
+        (day.date ? '<span class="day-date">' + day.date + '</span>' : '') +
+        (day.iso && day.iso === todayISO() ? '<span class="today-badge">Today</span>' : '');
+      if (day.sunrise) {
+        var tags = document.createElement('div');
+        tags.className = 'sun-tags';
+        function tag(label, val, golden) {
+          return '<span class="sun-tag' + (golden ? ' golden' : '') + '">' +
+            '<b>' + label + '</b>' + val + '</span>';
+        }
+        tags.innerHTML =
+          tag('Sunrise', day.sunrise, false) +
+          tag('Golden', day.goldenAM, true) +
+          tag('Golden', day.goldenPM, true) +
+          tag('Sunset', day.sunset, false);
+        h.appendChild(tags);
+      }
+      sec.appendChild(h);
+      var meta = document.createElement('div');
+      meta.className = 'day-meta';
+      meta.textContent = day.setups + ' scene' + (day.setups === 1 ? '' : 's') +
+        ' · ' + day.shots + ' shot' + (day.shots === 1 ? '' : 's');
+      sec.appendChild(meta);
+      if (day.notes) {
+        var note = document.createElement('div');
+        note.className = 'day-note';
+        note.textContent = day.notes;
+        sec.appendChild(note);
+      }
+      if (!day.entries.length) {
+        var p = document.createElement('p'); p.className = 'empty';
+        p.textContent = 'No scenes scheduled.'; sec.appendChild(p);
+      }
+      day.entries.forEach(function (entry) {
+        var src = sceneNodes[entry.s];
+        if (!src) return;
+        var node = src.cloneNode(true);
+        node.removeAttribute('id');
+        uid++;
+        // Re-id the pure-CSS expand checkboxes so their labels still toggle.
+        Array.prototype.forEach.call(node.querySelectorAll('.shot-toggle'), function (box) {
+          var lab = node.querySelector('label[for="' + box.id + '"]');
+          var newId = box.id + '-d' + uid;
+          box.id = newId;
+          if (lab) lab.setAttribute('for', newId);
+        });
+        // Optional strip note under the scene heading.
+        if (entry.note) {
+          var nb = document.createElement('div');
+          nb.className = 'strip-note';
+          nb.textContent = entry.note;
+          var head = node.querySelector('.scene-head');
+          if (head && head.nextSibling) node.insertBefore(nb, head.nextSibling);
+          else node.appendChild(nb);
+        }
+        // Grey the shots not scheduled for this day.
+        if (!entry.all) {
+          var wanted = {};
+          entry.shots.forEach(function (n) { wanted[n] = true; });
+          Array.prototype.forEach.call(node.querySelectorAll('.shot'), function (shot) {
+            var numEl = shot.querySelector('.shot-num');
+            var num = numEl ? numEl.textContent.trim() : '';
+            if (!wanted[num]) {
+              shot.classList.add('shot-off');
+              var main = shot.querySelector('.shot-main');
+              if (main) {
+                var msg = document.createElement('span');
+                msg.className = 'shot-off-msg';
+                msg.textContent = 'Not scheduled for this day';
+                main.appendChild(msg);
+              }
+            }
+          });
+        }
+        sec.appendChild(node);
+      });
+      container.appendChild(sec);
+    });
+  }
+
+  function todayISO() {
+    var d = new Date();
+    function p(n) { return (n < 10 ? '0' : '') + n; }
+    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+  }
+  function scrollToToday(epEl) {
+    var el = epEl.querySelector('.view-days [data-date="' + todayISO() + '"]');
+    if (!el) return;
+    // Land the day header flush under the sticky toolbar (scrollIntoView would
+    // add the day-group's scroll-margin, stopping short of the header).
+    requestAnimationFrame(function () {
+      var sticky = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sticky')) || 0;
+      var y = window.scrollY + el.getBoundingClientRect().top - sticky;
+      window.scrollTo({ top: Math.max(0, y) });
+    });
+  }
+
+  var vtScenes = document.getElementById('vt-scenes');
+  var vtDays = document.getElementById('vt-days');
+  var viewtoggle = document.getElementById('viewtoggle');
+  // Show the active episode in the chosen view; hide the day switch for an
+  // episode that has no shooting schedule.
+  function applyView() {
+    var epEl = ep();
+    var hasDays = epEl.getAttribute('data-has-days') === '1';
+    if (viewtoggle) viewtoggle.hidden = !hasDays;
+    var days = daysView && hasDays;
+    if (days) buildDays(epEl, current);
+    epEl.querySelector('.view-scenes').hidden = days;
+    epEl.querySelector('.view-days').hidden = !days;
+    document.body.classList.toggle('days-mode', days);
+    // The toolbar shrinks in day view (search/chips hidden) — re-measure so
+    // --sticky (the sticky day-header offset and the scroll target) is right.
+    syncSticky();
+    if (vtScenes) vtScenes.classList.toggle('on', !days);
+    if (vtDays) vtDays.classList.toggle('on', days);
+    if (days) scrollToToday(epEl);
+  }
+  function setView(days) { daysView = days; applyView(); }
+  if (vtDays) vtDays.addEventListener('click', function () { setView(true); });
+  if (vtScenes) vtScenes.addEventListener('click', function () { setView(false); });
+
+  function tocFor(id) {
+    var items = qsa('.toc-item');
+    for (var i = 0; i < items.length; i++) {
+      if (items[i].getAttribute('data-for') === id) return items[i];
+    }
+    return null;
+  }
+
+  function apply() {
+    var term = q.value.trim().toLowerCase();
+    var shownScenes = 0, shownShots = 0, totalShots = 0;
+    var scenes = qsa('.view-scenes .scene', ep());
+
+    scenes.forEach(function (scene) {
+      var isInt = scene.getAttribute('data-int') === '1';
+      var isDay = scene.getAttribute('data-day') === '1';
+      var sceneText = scene.getAttribute('data-text') || '';
+      var sceneMatches = term === '' || sceneText.indexOf(term) !== -1;
+
+      // Scene-level filters
+      var passes = true;
+      if (active.type === 'int' && !isInt) passes = false;
+      if (active.type === 'ext' && isInt) passes = false;
+      if (active.time === 'day' && !isDay) passes = false;
+      if (active.time === 'night' && isDay) passes = false;
+
+      var shots = Array.prototype.slice.call(scene.querySelectorAll('.shot'));
+      totalShots += shots.length;
+      var visibleHere = 0;
+
+      shots.forEach(function (shot) {
+        var ok = passes;
+        if (ok && active.media && shot.getAttribute('data-media') !== '1') ok = false;
+        // A scene matching by name shows all of its shots; otherwise the
+        // shot has to match the term itself.
+        if (ok && term !== '' && !sceneMatches) {
+          var shotText = shot.getAttribute('data-text') || '';
+          if (shotText.indexOf(term) === -1) ok = false;
+        }
+        shot.hidden = !ok;
+        if (ok) visibleHere++;
+      });
+
+      // Keep an empty scene visible only when nothing shot-specific is filtering.
+      var shotFilterActive = active.media || term !== '';
+      var show = passes && (visibleHere > 0 || (!shotFilterActive && shots.length === 0) ||
+                            (sceneMatches && !active.media && shots.length === 0));
+      scene.hidden = !show;
+
+      var item = tocFor(scene.id);
+      if (item) item.hidden = !show;
+
+      if (show) { shownScenes++; shownShots += visibleHere; }
+    });
+
+    var filtering = term !== '' || active.type || active.media || active.time;
+    // The unfiltered total lives in the masthead subtitle; here we only show
+    // the match count while filtering.
+    countEl.textContent = filtering
+      ? shownScenes + ' of ' + scenes.length + ' scenes · ' + shownShots + ' of ' + totalShots + ' shots'
+      : '';
+    resetEl.hidden = !filtering;
+    clearq.hidden = term === '';
+    var nr = ep().querySelector('.noresults');
+    if (nr) nr.hidden = shownScenes !== 0;
+  }
+
+  q.addEventListener('input', apply);
+  clearq.addEventListener('click', function () { q.value = ''; apply(); q.focus(); });
+
+  chips.forEach(function (chip) {
+    chip.addEventListener('click', function () {
+      var group = chip.getAttribute('data-group');
+      var value = chip.getAttribute('data-value');
+      if (group === 'media') {
+        active.media = !active.media;
+      } else {
+        active[group] = active[group] === value ? null : value;
+      }
+      chips.forEach(function (other) {
+        var g = other.getAttribute('data-group');
+        var v = other.getAttribute('data-value');
+        var on = g === 'media' ? active.media : active[g] === v;
+        other.classList.toggle('on', on);
+      });
+      apply();
+    });
+  });
+
+  resetEl.addEventListener('click', function () {
+    q.value = '';
+    active = { type: null, time: null, media: false };
+    chips.forEach(function (c) { c.classList.remove('on'); });
+    apply();
+  });
+
+  // Individual scenes collapse natively via <details>; this only does all
+  // of them at once, within the active episode.
+  toggleAll.addEventListener('click', function () {
+    var collapse = toggleAll.textContent.indexOf('Collapse') === 0;
+    qsa('.view-scenes .scene', ep()).forEach(function (s) { s.open = !collapse; });
+    toggleAll.textContent = collapse ? 'Expand all' : 'Collapse all';
+  });
+
+  // Update the subtitle and Director/Cinematographer credits to the active
+  // episode (Production Company stays put). Only used when there's a switch.
+  function esch(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  function updateMasthead() {
+    var el = ep();
+    var subEl = document.getElementById('masthead-sub');
+    if (subEl) subEl.textContent = el.getAttribute('data-sub') || '';
+    var creditsEl = document.getElementById('credits');
+    if (creditsEl) {
+      var html = '';
+      function span(label, val) {
+        if (val && val.trim()) html += '<span class="credit"><b>' + label + '</b> ' + esch(val) + '</span>';
+      }
+      span('Production Company', creditsEl.getAttribute('data-company') || '');
+      span('Director', el.getAttribute('data-director') || '');
+      span('Cinematographer', el.getAttribute('data-cinematographer') || '');
+      creditsEl.innerHTML = html;
+    }
+  }
+
+  // Episode switch: swap which episode is shown, keeping search/filters/view.
+  var epButtons = qsa('.ep-btn');
+  function setEpisode(i) {
+    if (i === current || !episodeEls[i]) return;
+    current = i;
+    episodeEls.forEach(function (el, idx) { el.hidden = idx !== i; });
+    epButtons.forEach(function (b) {
+      b.classList.toggle('on', parseInt(b.getAttribute('data-ep'), 10) === i);
+    });
+    toggleAll.textContent = 'Collapse all';
+    updateMasthead();
+    applyView();
+    apply();
+    window.scrollTo({ top: 0 });
+  }
+  epButtons.forEach(function (b) {
+    b.addEventListener('click', function () { setEpisode(parseInt(b.getAttribute('data-ep'), 10)); });
+  });
+
+  // Enlarging a thumbnail is pure <details> — no script involved, so it
+  // works in previews with JavaScript disabled. Script only adds the
+  // niceties: one open at a time, and stopping a video when it closes.
+  var mediaItems = qsa('.mi');
+  mediaItems.forEach(function (item) {
+    item.addEventListener('toggle', function () {
+      if (item.open) {
+        mediaItems.forEach(function (other) { if (other !== item) other.open = false; });
+      } else {
+        var video = item.querySelector('video');
+        if (video) video.pause();
+      }
+    });
+  });
+
+  // Highlight the scene currently on screen in the index
+  if ('IntersectionObserver' in window) {
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        var item = tocFor(entry.target.id);
+        if (!item) return;
+        if (entry.isIntersecting) {
+          qsa('.toc-item').forEach(function (i) { i.classList.remove('active'); });
+          item.classList.add('active');
+        }
+      });
+    }, { rootMargin: '-70px 0px -70% 0px' });
+    qsa('.view-scenes .scene').forEach(function (s) { observer.observe(s); });
+  }
+
+  var totop = document.getElementById('totop');
+  window.addEventListener('scroll', function () { totop.hidden = window.scrollY < 500; });
+  totop.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+
+  document.addEventListener('keydown', function (event) {
+    if (event.key === '/' && document.activeElement !== q) { event.preventDefault(); q.focus(); }
+    if (event.key === 'Escape') {
+      var open = document.querySelector('.mi[open]');
+      if (open) { open.open = false; }
+      else if (document.activeElement === q) { q.value = ''; apply(); }
+    }
+  });
+
+  applyView();
+  apply();
+})();
+
+</script>
+</body>
+</html>
