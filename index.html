@@ -224,6 +224,7 @@
   .scene-media .mi > summary { display: flex; flex-direction: column; align-items: center; gap: 2px; }
   .scene-media .thumb-label { display: block; margin-top: 0; }
   .scene-media .mi-doc > summary,
+  .scene-media .mi-map > summary,
   .scene-media .mi-report > summary { width: auto; }
   /* Portrait phone: the scene cards drop onto their own line under the
      heading, left-aligned to start where "Scene x" does (past the caret),
@@ -252,6 +253,21 @@
                             background-size: 100% auto; background-position: top center; }
   .mi-doc > summary { width: 120px; }
   .mi-doc[open] > summary .thumb-label { display: none; }
+
+  /* Scene map: like the coverage thumbnail it's a background image (embedded
+     once), but unlike the tall script pages it must fit the screen whole, not
+     scroll. So it opens like the photo lightbox — centred and letterboxed —
+     rather than the scrolling document. `--ar` (from .map-N) sizes the box to
+     the largest rectangle that fits both axes, so it's whole in portrait and
+     landscape alike; without it a background image has no size to fit. */
+  .mi-map[open] > summary { position: absolute; inset: 0; display: flex;
+                            align-items: center; justify-content: center; padding: 20px; }
+  .mi-map[open] > summary .cover-thumb {
+      width: min(96vw, calc(92vh * var(--ar)));
+      height: min(92vh, calc(96vw / var(--ar)));
+      background-size: contain; background-position: center; background-color: transparent;
+      border-radius: 6px; }
+  .mi-map[open] > summary .thumb-label { display: none; }
 
   /* Film-length report: a thumbnail tile that opens an embedded stats
      panel (text, not an image). */
@@ -413,22 +429,22 @@
   .days-mode .tb-break { display: none; }
 
           .cov-0-0 { background-image: url(media/cov_0_0.jpg); aspect-ratio: 1836 / 4794; }
-          .map-0-0 { background-image: url(media/map_0_0.jpg); aspect-ratio: 1200 / 1200; }
+          .map-0-0 { background-image: url(media/map_0_0.jpg); aspect-ratio: 1200 / 1200; --ar: 1.00000; }
           .cov-0-1 { background-image: url(media/cov_0_1.jpg); aspect-ratio: 1836 / 4794; }
-          .map-0-1 { background-image: url(media/map_0_1.jpg); aspect-ratio: 1200 / 1200; }
+          .map-0-1 { background-image: url(media/map_0_1.jpg); aspect-ratio: 1200 / 1200; --ar: 1.00000; }
           .cov-0-2 { background-image: url(media/cov_0_2.jpg); aspect-ratio: 1836 / 4794; }
-          .map-0-2 { background-image: url(media/map_0_2.jpg); aspect-ratio: 1200 / 1200; }
+          .map-0-2 { background-image: url(media/map_0_2.jpg); aspect-ratio: 1200 / 1200; --ar: 1.00000; }
           .cov-0-3 { background-image: url(media/cov_0_3.jpg); aspect-ratio: 1836 / 4794; }
-          .map-0-3 { background-image: url(media/map_0_3.jpg); aspect-ratio: 1200 / 1200; }
+          .map-0-3 { background-image: url(media/map_0_3.jpg); aspect-ratio: 1200 / 1200; --ar: 1.00000; }
           .cov-0-4 { background-image: url(media/cov_0_4.jpg); aspect-ratio: 1836 / 4794; }
-          .map-0-4 { background-image: url(media/map_0_4.jpg); aspect-ratio: 1200 / 1200; }
+          .map-0-4 { background-image: url(media/map_0_4.jpg); aspect-ratio: 1200 / 1200; --ar: 1.00000; }
           .cov-0-5 { background-image: url(media/cov_0_5.jpg); aspect-ratio: 1836 / 4794; }
           .cov-0-6 { background-image: url(media/cov_0_6.jpg); aspect-ratio: 1836 / 4794; }
           .cov-0-7 { background-image: url(media/cov_0_7.jpg); aspect-ratio: 1836 / 7212; }
           .cov-0-8 { background-image: url(media/cov_0_8.jpg); aspect-ratio: 1836 / 4794; }
-          .map-0-8 { background-image: url(media/map_0_8.jpg); aspect-ratio: 1200 / 1200; }
+          .map-0-8 { background-image: url(media/map_0_8.jpg); aspect-ratio: 1200 / 1200; --ar: 1.00000; }
           .cov-0-9 { background-image: url(media/cov_0_9.jpg); aspect-ratio: 1836 / 4794; }
-          .map-0-9 { background-image: url(media/map_0_9.jpg); aspect-ratio: 1200 / 1200; }
+          .map-0-9 { background-image: url(media/map_0_9.jpg); aspect-ratio: 1200 / 1200; --ar: 1.00000; }
 </style>
 </head>
 <body>
@@ -512,7 +528,7 @@
     <span class="scene-loc">ANNA'S KITCHEN</span>
     <span class="scene-media">
       <details class="mi mi-doc"><summary onclick="event.stopPropagation()" title="Script with coverage for this scene"><span class="cover-thumb cov-0-0"></span><span class="thumb-label">Coverage</span></summary></details>
-      <details class="mi mi-doc"><summary onclick="event.stopPropagation()" title="Scene map"><span class="cover-thumb is-map map-0-0"></span><span class="thumb-label">Scene map</span></summary></details>
+      <details class="mi mi-map"><summary onclick="event.stopPropagation()" title="Scene map"><span class="cover-thumb is-map map-0-0"></span><span class="thumb-label">Scene map</span></summary></details>
     </span>
   </summary>
   <div class="shots">
@@ -565,14 +581,14 @@ anna
 everything's frozen solid,
 darling. goodnight.
 she hangs up before eva can answer, and stands with her hand
-on the receiver as though holding a door shut. size ms type single + high angle focal length 35mm grip tripod camera sony fx9 · ff 6k (3840x2160) framelines 16:9 lens canon fd extra info master shot">
+on the receiver as though holding a door shut. size ms type single + high angle focal length 35mm grip tripod camera sony fx9 · ff 6k (3840x2160) framelines 16:9 lens canon fd extra info master">
       <input type="checkbox" class="shot-toggle" id="shot-0">
       <div class="shot-row">
         <label class="shot-main" for="shot-0">
           <span class="shot-caret" aria-hidden="true"></span>
           <span class="shot-num">1.1</span>
           <span class="shot-nick">Anna</span>
-          <span class="si-vals" title="Size: MS · Type: Single + High Angle · Focal Length: 35mm · Grip: Tripod · Extra info: Master Shot">MS · Single + High Angle · 35mm · Tripod · Master Shot</span>
+          <span class="si-vals" title="Size: MS · Type: Single + High Angle · Focal Length: 35mm · Grip: Tripod · Extra info: Master">MS · Single + High Angle · 35mm · Tripod · Master</span>
         </label>
         <div class="media">
           <div class="mi-pair">
@@ -590,7 +606,7 @@ on the receiver as though holding a door shut. size ms type single + high angle 
               <div class="row"><span class="k">Type</span><span class="v">Single + High Angle</span></div>
               <div class="row"><span class="k">Focal Length</span><span class="v">35mm</span></div>
               <div class="row"><span class="k">Grip</span><span class="v">Tripod</span></div>
-              <div class="row"><span class="k">Extra info</span><span class="v">Master Shot</span></div>
+              <div class="row"><span class="k">Extra info</span><span class="v">Master</span></div>
             </div>
           </div>
           <div class="detail-col">
@@ -780,7 +796,7 @@ is circled twice in red pen: anniversary. size insert type pov focal length 50mm
     <span class="scene-loc">CELLAR</span>
     <span class="scene-media">
       <details class="mi mi-doc"><summary onclick="event.stopPropagation()" title="Script with coverage for this scene"><span class="cover-thumb cov-0-1"></span><span class="thumb-label">Coverage</span></summary></details>
-      <details class="mi mi-doc"><summary onclick="event.stopPropagation()" title="Scene map"><span class="cover-thumb is-map map-0-1"></span><span class="thumb-label">Scene map</span></summary></details>
+      <details class="mi mi-map"><summary onclick="event.stopPropagation()" title="Scene map"><span class="cover-thumb is-map map-0-1"></span><span class="thumb-label">Scene map</span></summary></details>
     </span>
   </summary>
   <div class="shots">
@@ -843,7 +859,7 @@ anna
     <span class="scene-loc">BACK GARDEN</span>
     <span class="scene-media">
       <details class="mi mi-doc"><summary onclick="event.stopPropagation()" title="Script with coverage for this scene"><span class="cover-thumb cov-0-2"></span><span class="thumb-label">Coverage</span></summary></details>
-      <details class="mi mi-doc"><summary onclick="event.stopPropagation()" title="Scene map"><span class="cover-thumb is-map map-0-2"></span><span class="thumb-label">Scene map</span></summary></details>
+      <details class="mi mi-map"><summary onclick="event.stopPropagation()" title="Scene map"><span class="cover-thumb is-map map-0-2"></span><span class="thumb-label">Scene map</span></summary></details>
       <details class="mi mi-report"><summary onclick="event.stopPropagation()" title="Film length report"><span class="cover-thumb is-report"><span class="report-preview"><span class="rp-title">Film length</span><span class="rp-line">3.1 · 35mm 3-perf · 64.3 m</span><span class="rp-line">3.2 · 35mm 3-perf · 64.3 m</span><span class="rp-line">3.3 · 35mm 3-perf · 64.3 m</span><span class="rp-line">3.4 · 35mm 3-perf · 21.4 m</span></span></span><span class="thumb-label">Film</span></summary>
         <div class="report-panel"><div class="report-card">
         <h3 class="report-title">Film length — Scene 3</h3>
@@ -1119,7 +1135,7 @@ you need a hand. with the compost. size mcu type single focal length 50mm grip t
     <span class="scene-loc">ANNA'S KITCHEN</span>
     <span class="scene-media">
       <details class="mi mi-doc"><summary onclick="event.stopPropagation()" title="Script with coverage for this scene"><span class="cover-thumb cov-0-3"></span><span class="thumb-label">Coverage</span></summary></details>
-      <details class="mi mi-doc"><summary onclick="event.stopPropagation()" title="Scene map"><span class="cover-thumb is-map map-0-3"></span><span class="thumb-label">Scene map</span></summary></details>
+      <details class="mi mi-map"><summary onclick="event.stopPropagation()" title="Scene map"><span class="cover-thumb is-map map-0-3"></span><span class="thumb-label">Scene map</span></summary></details>
     </span>
   </summary>
   <div class="shots">
@@ -1212,7 +1228,7 @@ memory you cannot outrun. size ms type single + low angle focal length 24mm grip
     <span class="scene-loc">SUPERMARKET PARKING LOT</span>
     <span class="scene-media">
       <details class="mi mi-doc"><summary onclick="event.stopPropagation()" title="Script with coverage for this scene"><span class="cover-thumb cov-0-4"></span><span class="thumb-label">Coverage</span></summary></details>
-      <details class="mi mi-doc"><summary onclick="event.stopPropagation()" title="Scene map"><span class="cover-thumb is-map map-0-4"></span><span class="thumb-label">Scene map</span></summary></details>
+      <details class="mi mi-map"><summary onclick="event.stopPropagation()" title="Scene map"><span class="cover-thumb is-map map-0-4"></span><span class="thumb-label">Scene map</span></summary></details>
       <details class="mi mi-report"><summary onclick="event.stopPropagation()" title="Film length report"><span class="cover-thumb is-report"><span class="report-preview"><span class="rp-title">Film length</span><span class="rp-line">5.1 · 35mm 3-perf · 107.2 m</span><span class="rp-line">5.2 · 35mm 3-perf · 107.2 m</span><span class="rp-line">5.3 · 35mm 3-perf · 107.2 m</span><span class="rp-line">5.4 · 35mm 3-perf · 107.2 m</span></span></span><span class="thumb-label">Film</span></summary>
         <div class="report-panel"><div class="report-card">
         <h3 class="report-title">Film length — Scene 5</h3>
@@ -2178,7 +2194,7 @@ get a fork, tom. size ms type ots focal length 35mm grip tripod camera sony fx9 
     <span class="scene-loc">FOREST EDGE</span>
     <span class="scene-media">
       <details class="mi mi-doc"><summary onclick="event.stopPropagation()" title="Script with coverage for this scene"><span class="cover-thumb cov-0-8"></span><span class="thumb-label">Coverage</span></summary></details>
-      <details class="mi mi-doc"><summary onclick="event.stopPropagation()" title="Scene map"><span class="cover-thumb is-map map-0-8"></span><span class="thumb-label">Scene map</span></summary></details>
+      <details class="mi mi-map"><summary onclick="event.stopPropagation()" title="Scene map"><span class="cover-thumb is-map map-0-8"></span><span class="thumb-label">Scene map</span></summary></details>
     </span>
   </summary>
   <div class="shots">
@@ -2397,7 +2413,7 @@ two forks. size insert type pov + high angle focal length 35mm grip tripod camer
     <span class="scene-loc">ANNA'S KITCHEN</span>
     <span class="scene-media">
       <details class="mi mi-doc"><summary onclick="event.stopPropagation()" title="Script with coverage for this scene"><span class="cover-thumb cov-0-9"></span><span class="thumb-label">Coverage</span></summary></details>
-      <details class="mi mi-doc"><summary onclick="event.stopPropagation()" title="Scene map"><span class="cover-thumb is-map map-0-9"></span><span class="thumb-label">Scene map</span></summary></details>
+      <details class="mi mi-map"><summary onclick="event.stopPropagation()" title="Scene map"><span class="cover-thumb is-map map-0-9"></span><span class="thumb-label">Scene map</span></summary></details>
     </span>
   </summary>
   <div class="shots">
@@ -2647,7 +2663,7 @@ she hangs up. she leans over and blows out the lamp. size ws focal length 20mm g
 
 <button class="totop" id="totop" type="button" aria-label="Back to top" hidden>↑</button>
 
-<script>var CP_EPISODES = [[{"shots":11,"sunrise":"","n":1,"iso":"2027-01-04","date":"Monday, 4 January 2027","setups":3,"goldenAM":"","notes":"","entries":[{"shots":["1.3","1.1","1.4","1.2"],"note":"","s":0,"all":true},{"s":3,"all":true,"shots":["4.2","4.1"],"note":""},{"s":9,"all":true,"note":"","shots":["10.3","10.5","10.1","10.2","10.4"]}],"goldenPM":"","sunset":""},{"goldenAM":"7:00–7:38","entries":[{"all":true,"note":"","s":4,"shots":["5.2","5.3","5.1","5.4"]},{"shots":["6.1","6.2"],"note":"","s":5,"all":true},{"all":true,"shots":["2.1"],"note":"","s":1},{"shots":["8.2","8.3","8.4","8.5","8.1"],"note":"","s":7,"all":true}],"date":"Tuesday, 5 January 2027","iso":"2027-01-05","sunrise":"7:00","goldenPM":"16:21–16:59","notes":"During Supermarket Scenes, Pre-Light for cellar","n":2,"shots":12,"setups":4,"sunset":"16:59"},{"iso":"2027-01-06","goldenPM":"16:27–17:11","goldenAM":"7:49–8:32","date":"Wednesday, 6 January 2027","notes":"During Ext scenes, Pre-Light for Bedroom","setups":3,"sunrise":"7:49","sunset":"17:11","n":3,"shots":10,"entries":[{"note":"","all":true,"s":2,"shots":["3.2","3.3","3.1","3.4"]},{"shots":["9.3","9.1","9.2"],"note":"","all":true,"s":8},{"all":true,"note":"","s":6,"shots":["7.1","7.3","7.2"]}]}]].map(function (s) { return { schedule: s }; });</script>
+<script>var CP_EPISODES = [[{"shots":11,"setups":3,"sunset":"","sunrise":"","goldenPM":"","entries":[{"note":"","shots":["1.3","1.2","1.1","1.4"],"s":0,"all":true},{"shots":["4.2","4.1"],"s":3,"note":"","all":true},{"s":9,"all":true,"shots":["10.4","10.2","10.3","10.5","10.1"],"note":""}],"notes":"","date":"Monday, 4 January 2027","iso":"2027-01-04","goldenAM":"","n":1},{"goldenPM":"16:21–16:59","shots":12,"entries":[{"shots":["5.2","5.4","5.3","5.1"],"s":4,"note":"","all":true},{"note":"","all":true,"shots":["6.1","6.2"],"s":5},{"note":"","shots":["2.1"],"s":1,"all":true},{"all":true,"note":"","shots":["8.4","8.2","8.3","8.1","8.5"],"s":7}],"date":"Tuesday, 5 January 2027","n":2,"sunrise":"7:00","notes":"During Supermarket Scenes, Pre-Light for cellar","iso":"2027-01-05","setups":4,"sunset":"16:59","goldenAM":"7:00–7:38"},{"date":"Wednesday, 6 January 2027","notes":"During Ext scenes, Pre-Light for Bedroom","setups":3,"sunrise":"7:49","sunset":"17:11","goldenPM":"16:27–17:11","entries":[{"s":2,"shots":["3.4","3.1","3.2","3.3"],"all":true,"note":""},{"s":8,"shots":["9.3","9.1","9.2"],"note":"","all":true},{"note":"","s":6,"shots":["7.1","7.2","7.3"],"all":true}],"goldenAM":"7:49–8:32","iso":"2027-01-06","shots":10,"n":3}]].map(function (s) { return { schedule: s }; });</script>
 <script>
 (function () {
   function qsa(sel, ctx) { return Array.prototype.slice.call((ctx || document).querySelectorAll(sel)); }
