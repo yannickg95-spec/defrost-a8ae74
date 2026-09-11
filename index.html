@@ -46,8 +46,10 @@
   .credit:not(:last-child)::after { content: "·"; margin: 0 12px; color: var(--faint); }
   .credit b { color: var(--text); font-weight: 600; }
   .brandline { position: absolute; top: 30px; right: 28px; display: flex; align-items: center;
-               gap: 7px; font-size: 12px; color: var(--muted); }
+               gap: 7px; font-size: 12px; color: var(--muted); text-decoration: none; }
   .brandline b { color: var(--text); font-weight: 700; }
+  a.brandline:hover { color: var(--text); }
+  a.brandline:hover b { text-decoration: underline; }
   .brandlogo { width: 20px; height: 20px; display: block; flex: none;
                background: #fff; border-radius: 5px; box-shadow: 0 0 0 1px rgba(0,0,0,0.10); }
   /* On phones drop it back into the flow above the title so it can't overlap. */
@@ -445,8 +447,11 @@
           .cov-0-4 { background-image: url(media/cov_0_4.jpg); aspect-ratio: 1836 / 4794; }
           .map-0-4 { background-image: url(media/map_0_4.jpg); aspect-ratio: 1200 / 1200; --ar: 1.00000; }
           .cov-0-5 { background-image: url(media/cov_0_5.jpg); aspect-ratio: 1836 / 4794; }
+          .map-0-5 { background-image: url(media/map_0_5.jpg); aspect-ratio: 1200 / 1200; --ar: 1.00000; }
           .cov-0-6 { background-image: url(media/cov_0_6.jpg); aspect-ratio: 1836 / 4794; }
+          .map-0-6 { background-image: url(media/map_0_6.jpg); aspect-ratio: 1200 / 1200; --ar: 1.00000; }
           .cov-0-7 { background-image: url(media/cov_0_7.jpg); aspect-ratio: 1836 / 7212; }
+          .map-0-7 { background-image: url(media/map_0_7.jpg); aspect-ratio: 1200 / 1200; --ar: 1.00000; }
           .cov-0-8 { background-image: url(media/cov_0_8.jpg); aspect-ratio: 1836 / 4794; }
           .map-0-8 { background-image: url(media/map_0_8.jpg); aspect-ratio: 1200 / 1200; --ar: 1.00000; }
           .cov-0-9 { background-image: url(media/cov_0_9.jpg); aspect-ratio: 1836 / 4794; }
@@ -455,7 +460,7 @@
 </head>
 <body>
 <div class="masthead">
-  <div class="brandline">
+  <a class="brandline" href="https://apps.apple.com/nl/app/cineplanner/id6800298885" target="_blank" rel="noopener">
     <svg class="brandlogo" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 100 100" aria-hidden="true">
       <defs><linearGradient id="cpg" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#3ECFFF"></stop><stop offset="1" stop-color="#1A4AFF"></stop></linearGradient></defs>
       <rect x="11.6" y="15.6" width="76.4" height="12.2" rx="6.1" fill="url(#cpg)"></rect>
@@ -464,7 +469,7 @@
       <rect x="11.6" y="71.1" width="48.1" height="12.2" rx="6.1" fill="url(#cpg)"></rect>
     </svg>
     <span>Made with <b>CinePlanner</b></span>
-  </div>
+  </a>
   <h1>Defrost <span class="title-tag">Shot List</span></h1>
   <div class="credits" id="credits" data-company="Fiction Production Company"><span class="credit"><b>Production Company</b> Fiction Production Company</span><span class="credit"><b>Director</b> John Doe</span><span class="credit"><b>Cinematographer</b> Yannick GIraud</span></div>
   
@@ -1729,6 +1734,7 @@ breath she has been holding since october. size cu type single focal length 85mm
     <span class="scene-loc">SUPERMARKET - FREEZER AISLE</span>
     <span class="scene-media">
       <details class="mi mi-doc"><summary onclick="event.stopPropagation()" title="Script with coverage for this scene"><span class="cover-thumb cov-0-5"></span><span class="thumb-label">Coverage</span></summary></details>
+      <details class="mi mi-map"><summary onclick="event.stopPropagation()" title="Scene map"><span class="cover-thumb is-map map-0-5"></span><span class="thumb-label">Scene map</span></summary></details>
     </span>
   </summary>
   <div class="shots">
@@ -1836,6 +1842,7 @@ case with the gentleness of a goodnight. size ws type two shot + profile shot fo
     <span class="scene-loc">ANNA'S BEDROOM</span>
     <span class="scene-media">
       <details class="mi mi-doc"><summary onclick="event.stopPropagation()" title="Script with coverage for this scene"><span class="cover-thumb cov-0-6"></span><span class="thumb-label">Coverage</span></summary></details>
+      <details class="mi mi-map"><summary onclick="event.stopPropagation()" title="Scene map"><span class="cover-thumb is-map map-0-6"></span><span class="thumb-label">Scene map</span></summary></details>
     </span>
   </summary>
   <div class="shots">
@@ -2008,6 +2015,7 @@ final click. size insert type profile shot focal length 35mm grip tripod camera 
     <span class="scene-loc">CELLAR</span>
     <span class="scene-media">
       <details class="mi mi-doc"><summary onclick="event.stopPropagation()" title="Script with coverage for this scene"><span class="cover-thumb cov-0-7"></span><span class="thumb-label">Coverage</span></summary></details>
+      <details class="mi mi-map"><summary onclick="event.stopPropagation()" title="Scene map"><span class="cover-thumb is-map map-0-7"></span><span class="thumb-label">Scene map</span></summary></details>
     </span>
   </summary>
   <div class="shots">
@@ -2776,7 +2784,7 @@ she hangs up. she leans over and blows out the lamp. size ws focal length 20mm g
 
 <button class="totop" id="totop" type="button" aria-label="Back to top" hidden>↑</button>
 
-<script>var CP_EPISODES = [[{"setups":3,"sunrise":"","n":1,"notes":"","iso":"2027-01-04","shots":11,"sunset":"","goldenAM":"","date":"Monday, 4 January 2027","goldenPM":"","entries":[{"s":0,"shots":["1.4","1.3","1.2","1.1"],"all":true,"note":""},{"shots":["4.2","4.1"],"s":3,"all":true,"note":""},{"all":true,"note":"","shots":["10.4","10.5","10.2","10.1","10.3"],"s":9}]},{"n":2,"date":"Tuesday, 5 January 2027","setups":4,"iso":"2027-01-05","goldenAM":"7:00–7:38","goldenPM":"16:21–16:59","shots":13,"entries":[{"shots":["5.2","5.3","5.4","5.1"],"s":4,"note":"","all":true},{"s":5,"note":"","all":true,"shots":["6.1","6.2"]},{"all":true,"shots":["2.2","2.1"],"s":1,"note":""},{"note":"","all":true,"shots":["8.1","8.5","8.2","8.3","8.4"],"s":7}],"notes":"During Supermarket Scenes, Pre-Light for cellar","sunrise":"7:00","sunset":"16:59"},{"n":3,"date":"Wednesday, 6 January 2027","shots":10,"notes":"During Ext scenes, Pre-Light for Bedroom","goldenPM":"16:27–17:11","setups":3,"sunrise":"7:49","entries":[{"all":true,"s":2,"shots":["3.1","3.4","3.2","3.3"],"note":""},{"all":true,"note":"","s":8,"shots":["9.3","9.2","9.1"]},{"s":6,"shots":["7.2","7.1","7.3"],"note":"","all":true}],"goldenAM":"7:49–8:32","iso":"2027-01-06","sunset":"17:11"}]].map(function (s) { return { schedule: s }; });</script>
+<script>var CP_EPISODES = [[{"n":1,"notes":"","date":"Monday, 4 January 2027","iso":"2027-01-04","shots":11,"sunrise":"","sunset":"","goldenPM":"","setups":3,"goldenAM":"","entries":[{"all":true,"s":0,"note":"","shots":["1.3","1.2","1.1","1.4"]},{"shots":["4.2","4.1"],"note":"","s":3,"all":true},{"all":true,"shots":["10.2","10.1","10.3","10.4","10.5"],"s":9,"note":""}]},{"entries":[{"s":4,"all":true,"shots":["5.4","5.1","5.2","5.3"],"note":""},{"shots":["6.1","6.2"],"all":true,"s":5,"note":""},{"shots":["2.1","2.2"],"all":true,"note":"","s":1},{"note":"","s":7,"all":true,"shots":["8.2","8.4","8.3","8.5","8.1"]}],"sunrise":"7:00","iso":"2027-01-05","goldenAM":"7:00–7:38","date":"Tuesday, 5 January 2027","notes":"During Supermarket Scenes, Pre-Light for cellar","n":2,"sunset":"16:59","setups":4,"goldenPM":"16:21–16:59","shots":13},{"n":3,"entries":[{"s":2,"all":true,"shots":["3.3","3.4","3.1","3.2"],"note":""},{"note":"","s":8,"all":true,"shots":["9.3","9.1","9.2"]},{"note":"","s":6,"all":true,"shots":["7.3","7.1","7.2"]}],"notes":"During Ext scenes, Pre-Light for Bedroom","iso":"2027-01-06","goldenAM":"7:49–8:32","setups":3,"sunset":"17:11","goldenPM":"16:27–17:11","date":"Wednesday, 6 January 2027","shots":10,"sunrise":"7:49"}]].map(function (s) { return { schedule: s }; });</script>
 <script>
 (function () {
   function qsa(sel, ctx) { return Array.prototype.slice.call((ctx || document).querySelectorAll(sel)); }
